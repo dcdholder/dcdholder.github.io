@@ -196,19 +196,20 @@ class MulticolorCheckbox extends React.Component {
 
     var descriptors = [];
     var footerInitial;
+    var footer;
     if ((this.props.youOrThem.toLowerCase()=='you' && !this.props.pickOneIfYou) || this.props.youOrThem.toLowerCase()=='them') {
       if (this.props.youOrThem.toLowerCase()=='you') { //present all colors except pink
         descriptors   = MulticolorCheckbox.youMulticolorLabels;
-        footerInitial = 'Describes me'
+        footerInitial = 'Describes me';
+        footer        = 'How well does this describe you?';
       } else { //present all colors including pink
-        descriptors = MulticolorCheckbox.themMulticolorLabels;
-        footerInitial = 'I consider this'
+        descriptors   = MulticolorCheckbox.themMulticolorLabels;
+        footerInitial = 'I consider this';
+        footer        = 'How important is this in others?';
       }
     } else {
       throw "Multicolor checkboxes cannot be \'pick one\'.";
     }
-
-    var footer = 'Select one.';
 
     var childColors = [];
     for (var i=0; i<descriptors.length; i++) {
@@ -251,7 +252,6 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      console.log(this.state.childColors[i]);
       choices.push(<CheckboxChoice label={this.props.label} side={side} colorName={this.state.childColors[i]} colorScore={i} text={text} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
     }
 
