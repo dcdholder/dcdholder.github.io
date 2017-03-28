@@ -3,6 +3,76 @@
     src: url(https://fonts.gstatic.com/s/passionone/v6/fY6k21F1QT2c_Oc3HRNDwiYE0-AqJ3nfInTTiDXDjU4.woff2);
 }
 
+@media (max-width:1000px)  {
+  h1 {
+    font-family: Passion,Georgia,serif;
+    font-size: 7vw;
+  }
+
+  h2 {
+    font-size: 6vw;
+  }
+
+  h3 {
+    font-size: 5vw;
+  }
+
+  h4 {
+    font-size: 4vw;
+  }
+
+  h5 {
+    font-size: 3.5vw;
+  }
+
+  .multicolorCheckbox + span {
+    font-size: 5vw;
+  }
+
+  .multicolorCheckbox .checkboxChoice span {
+    font-size: 4vw;
+  }
+
+  .checkboxChoice {
+    height:10vw;
+  }
+}
+
+@media (min-width:1001px) {
+  h1 {
+    font-family: Passion,Georgia,serif;
+    font-size: 2.5vw;
+  }
+
+  h2 {
+    font-size: 1.8vw;
+  }
+
+  h3 {
+    font-size: 1.2vw;
+  }
+
+  h4 {
+    font-size: 1.0vw;
+  }
+
+  h5 {
+    font-size: 0.5vw;
+  }
+
+  .multicolorCheckbox + span {
+    font-size: 2vw;
+  }
+
+  .multicolorCheckbox .checkboxChoice span {
+    font-size: 1vw;
+  }
+
+  .checkboxChoice {
+      height:2vw;
+  }
+}
+
 body {
   background-color:blanchedalmond;
 }
@@ -25,10 +95,8 @@ body {
     border-bottom-right-radius:15px;
 }
 
-.multicolorCheckbox .checkboxChoice {
+.checkboxChoice {
     float:left;
-    width: 16.5%;
-    height:30px;
     margin:0px;
     background-color:#404040;
     border:2px solid #A09380;
@@ -47,7 +115,6 @@ body {
     color:white;
     font-weight:bold;
     text-align:center;
-    font-size: 1.5vh;
     display:block;
 }
 
@@ -69,10 +136,6 @@ body {
   border-radius: 10px;
   border: 4px solid #3b2f1f;
   margin: 3px;
-}
-
-.chartName h1 {
-  font-family: Passion,Georgia,serif;
 }
 
 .targetName {

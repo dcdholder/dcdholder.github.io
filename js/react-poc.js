@@ -60,7 +60,7 @@ class Target extends React.Component {
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
               <div className="targetName">
-                <h2>{this.props.targetName}</h2>
+                <h2><b>{this.props.targetName}</b></h2>
               </div>
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
@@ -89,7 +89,7 @@ class Category extends React.Component {
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
               <div className="categoryName">
-                <h3>{this.props.categoryName}</h3>
+                <h3><b>{this.props.categoryName}</b></h3>
               </div>
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
@@ -109,7 +109,8 @@ class MulticolorCheckboxSet extends React.Component {
   }
 
   static get colsDesktop()   {return 4;}
-  static get numColsMedium() {return 2;}
+  static get numColsSmall()  {return 2;}
+  static get numColsMedium() {return 4;}
 
   getCheckboxes() {
     this.props.labels.sort()
@@ -130,7 +131,7 @@ class MulticolorCheckboxSet extends React.Component {
 
     return (
       <div className="multicolorCheckboxes">
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           {rows}
         </ReactBootstrap.Grid>
       </div>
@@ -159,7 +160,7 @@ class MulticolorCheckboxSet extends React.Component {
   fillColumn(numColsDesktop,element) {
     if (typeof element!==undefined) { //TODO: figure out if this is necessary
       return (
-        <ReactBootstrap.Col lg={Math.floor(12/numColsDesktop)} md={Math.floor(12/MulticolorCheckboxSet.numColsMedium)}>
+        <ReactBootstrap.Col md={Math.floor(12/MulticolorCheckboxSet.numColsMedium)} sm={Math.floor(12/MulticolorCheckboxSet.numColsSmall)} >
           {element}
         </ReactBootstrap.Col>
       );
@@ -172,7 +173,7 @@ class MulticolorCheckboxSet extends React.Component {
         <ReactBootstrap.Grid>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col lg={12}>
-              <label class="multicolorCheckboxSetName"><span><h4>{this.props.name}</h4></span></label>
+              <label class="multicolorCheckboxSetName"><h4>{this.props.name}</h4></label>
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
