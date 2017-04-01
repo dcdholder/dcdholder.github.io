@@ -5,7 +5,9 @@ class Chart extends React.Component {
     this.tagLine = "The Ultimate QT Infograph";
     this.edition = "ENTERPRISE EDITION";
 
-    this.categoryElementMap = {'Emotional': {Quirks:
+    this.requestChartImage = this.requestChartImage.bind(this)
+
+    this.categoryElementMap = {'Emotional': {'Quirks':
       ['Adventurous','Ambitious','Analytical','Artistic','Assertive', 'Athletic', 'Confident', 'Creative',
        'Cutesy', 'Cynical', 'Easy-going', 'Empathetic', 'Energetic', 'Honest', 'Humorous', 'Hygienic',
        'Intelligent', 'Kind', 'Lazy', 'Loud', 'Materialistic', 'Messy', 'Outdoorsy', 'Passionate',
@@ -17,9 +19,137 @@ class Chart extends React.Component {
     for (var i=0;i<possibleTargets.length;i++) {
       this.targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} />);
     }
+
+    this.state = {
+      generateButtonText: 'Download',
+      errorMessage: ''
+    };
+  }
+
+  static get restServerDomain() { return 'http://hollerache.pythonanywhere.com/new'; }
+  static get defaultGenerateButtonText() { return 'Download'; }
+  static get generateAnimationTick() {return 250; }
+
+  getNameValuePairs() {
+    var selections = {};
+    selections['emotional'] = {};
+    selections['emotional']['quirks'] = {};
+    selections['emotional']['quirks']['you'] = {};
+    selections['emotional']['quirks']['them'] = {};
+    for (var labelIndex in this.categoryElementMap['Emotional']['Quirks']) { //TODO: ditch this nasty short-term hack for a solution which covers all categories and image elements
+      var label = this.categoryElementMap['Emotional']['Quirks'][labelIndex];
+      for (var targetIndex in ["you","them"]) {
+        var targetName = ["you","them"][targetIndex];
+        try {
+          selections['emotional']['quirks'][targetName][label.toLowerCase()] = document.querySelector('input[name="' + 'emotional-quirks-' + targetName + '-' + label.toLowerCase() + '"]:checked').value;
+        } catch (TypeError) {
+          throw "Missed a multicolored checkbox: " + label.toLowerCase();
+        }
+      }
+    }
+
+    return selections;
+  }
+
+  allFieldsSelected() {
+    try {
+      getNameValuePairs();
+    } catch (error) {
+      return false;
+    }
+    return true;
+  }
+
+  restRequestUri() {
+    var nameValuePairs       = this.getNameValuePairs();
+    var nameValuePairsString = encodeURIComponent(JSON.stringify(nameValuePairs));
+    var paramsUri            = '?chartdata=' + nameValuePairsString;
+
+    var fullUri = Chart.restServerDomain + paramsUri;
+
+    console.log(fullUri);
+    return fullUri;
+
+    //return 'http://hollerache.pythonanywhere.com/new?chartdata=%7B%22emotional%22%3A%7B%22quirks%22%3A%7B%22you%22%3A%7B%22adventurous%22%3A%221%22%2C%22ambitious%22%3A%221%22%2C%22analytical%22%3A%222%22%2C%22artistic%22%3A%223%22%2C%22assertive%22%3A%224%22%7D%2C%22them%22%3A%7B%22reliable%22%3A%220%22%2C%22Resourceful%22%3A%221%22%2C%22romantic%22%3A%222%22%2C%22serious%22%3A%223%22%2C%22sexual%22%3A%222%22%2C%22social%22%3A%225%22%7D%7D%7D%7D'
+  }
+
+  showGenerateWaitAnimation() {
+    this.setState({generateButtonText: 'Generating'});
+
+    var that = this;
+    var periodCount = 0;
+    this.generationAnimationTimer = setInterval( function() { //keep timer short, so that
+      that.setState({generateButtonText: 'Generating' + '.'.repeat(periodCount)});
+      if (periodCount<3) {
+        periodCount++;
+      } else {
+        periodCount = 0;
+      }
+    }, that.generateAnimationTick);
+  }
+
+  hideGenerateWaitAnimation() {
+    if (this.generationAnimationTimer!=null) {
+      clearInterval(this.generationAnimationTimer);
+    }
+
+    console.log(this.state.generateButtonText)
+
+    this.setState({generateButtonText: Chart.defaultGenerateButtonText})
+    console.log(this.state.generateButtonText)
+  }
+
+  showEmptyFieldWarning() {
+    this.setState({errorMessage: 'You have one or more empty fields.'})
+  }
+
+  showRequestErrorWarning() {
+    this.setState({errorMessage: 'The server must be busy. Try again later.'})
+  }
+
+  hideProcessingErrorWarning() {
+    this.setState({errorMessage: ''})
+  }
+
+  requestChartImage() {
+    var restUri     = this.restRequestUri();
+    var httpRequest = new XMLHttpRequest();
+
+    /*
+    //refuse to go further and display a warning if fields are unselected
+    if (!this.allFieldsSelected()) {
+      this.showEmptyFieldWarning();
+      return;
+    } else {
+      this.hideProcessingErrorWarning();
+    }
+*/
+    this.showGenerateWaitAnimation();
+    httpRequest.open('GET', restUri, true);
+    httpRequest.responseType = "blob";
+
+    var that = this;
+    httpRequest.onreadystatechange = function() {
+      if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+        var imageBlob = new Blob([httpRequest.response], {type: 'application/octet-stream'});
+        that.hideGenerateWaitAnimation();
+        saveAs(imageBlob, "chart.png");
+      } else if (httpRequest.status>=400) { //something went wrong
+        console.log('Failed response.');
+        that.hideGenerateWaitAnimation();
+      }
+    }
+    httpRequest.send();
   }
 
   render() {
+    var errorMessageDisplayMode;
+    if (this.state.errorMessage=='') {
+      errorMessageDisplayMode = 'none';
+    } else {
+      errorMessageDisplayMode = 'block';
+    }
+
     return (
       <div className="chart">
         <ReactBootstrap.Grid>
@@ -30,6 +160,15 @@ class Chart extends React.Component {
                 <h4 style={{'textAlign': 'center'}}>{this.edition}</h4>
               </div>
               {this.targets}
+            </ReactBootstrap.Col>
+          </ReactBootstrap.Row>
+        </ReactBootstrap.Grid>
+        <ReactBootstrap.Grid>
+          <ReactBootstrap.Row>
+            <ReactBootstrap.Col md={3}>
+              <br />
+              <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
+              <br />
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
@@ -49,7 +188,7 @@ class Target extends React.Component {
     this.categories = [];
 
     for (var categoryName in props.categoryElementMap) {
-      this.categories.push(<Category categoryName={categoryName} elementMap={props.categoryElementMap[categoryName]} youOrThem={this.props.targetName} />);
+      this.categories.push(<Category targetName={this.props.targetName} categoryName={categoryName} elementMap={props.categoryElementMap[categoryName]} />);
     }
   }
 
@@ -78,7 +217,7 @@ class Category extends React.Component {
     this.elements = [];
 
     for (var elementName in this.props.elementMap) {
-      this.elements.push(<MulticolorCheckboxSet name={elementName} labels={this.props.elementMap[elementName]} youOrThem={this.props.youOrThem} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
+      this.elements.push(<MulticolorCheckboxSet targetName={this.props.targetName} categoryName={this.props.categoryName} name={elementName} labels={this.props.elementMap[elementName]} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
     }
   }
 
@@ -117,7 +256,7 @@ class MulticolorCheckboxSet extends React.Component {
 
     var checkboxes = [];
     for (var i=0; i<this.props.labels.length; i++) {
-      checkboxes.push(<MulticolorCheckbox label={this.props.labels[i]} youOrThem={this.props.youOrThem} pickOneIfYou={false} />);
+      checkboxes.push(<MulticolorCheckbox targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.labels[i]} pickOneIfYou={false} />);
     }
 
     return checkboxes;
@@ -197,8 +336,8 @@ class MulticolorCheckbox extends React.Component {
     var descriptors = [];
     var footerInitial;
     var footer;
-    if ((this.props.youOrThem.toLowerCase()=='you' && !this.props.pickOneIfYou) || this.props.youOrThem.toLowerCase()=='them') {
-      if (this.props.youOrThem.toLowerCase()=='you') { //present all colors except pink
+    if ((this.props.targetName.toLowerCase()=='you' && !this.props.pickOneIfYou) || this.props.targetName.toLowerCase()=='them') {
+      if (this.props.targetName.toLowerCase()=='you') { //present all colors except pink
         descriptors   = MulticolorCheckbox.youMulticolorLabels;
         footerInitial = 'Describes me';
         footer        = 'How well does this describe you?';
@@ -252,7 +391,7 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      choices.push(<CheckboxChoice label={this.props.label} side={side} colorName={this.state.childColors[i]} colorScore={i} text={text} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
+      choices.push(<CheckboxChoice targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} colorScore={i} text={text} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
     }
 
     //TODO: the extra line breaks here are a hideous kludge
@@ -260,7 +399,9 @@ class MulticolorCheckbox extends React.Component {
       <div className="multicolorCheckbox">
         <label class="multicolorCheckboxLabel"><span><b>{this.props.label + ': '}</b></span></label>
         <br />
-        {choices}
+        <div className="fixed_container">
+          {choices}
+        </div>
         <br />
         <br />
         <span>{this.state.footer}</span>
@@ -272,7 +413,11 @@ class MulticolorCheckbox extends React.Component {
 class CheckboxChoice extends React.Component {
   render() {
     return ( //TODO: figure out how to add multiple optional classes
-      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.label} value={this.props.colorScore} onClick={() => this.props.onClick(this.props.colorScore)} /><span>{this.props.text}</span></label>
+      <div className="container_square">
+        <div className="container_square_item">
+          <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.colorScore} onClick={() => this.props.onClick(this.props.colorScore)} /><span>{this.props.text}</span></label>
+        </div>
+      </div>
     );
   }
 }
