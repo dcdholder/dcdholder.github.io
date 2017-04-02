@@ -399,9 +399,7 @@ class MulticolorCheckbox extends React.Component {
       <div className="multicolorCheckbox">
         <label class="multicolorCheckboxLabel"><span><b>{this.props.label + ': '}</b></span></label>
         <br />
-        <div className="fixed_container">
-          {choices}
-        </div>
+        {choices}
         <br />
         <br />
         <span>{this.state.footer}</span>
@@ -413,11 +411,7 @@ class MulticolorCheckbox extends React.Component {
 class CheckboxChoice extends React.Component {
   render() {
     return ( //TODO: figure out how to add multiple optional classes
-      <div className="container_square">
-        <div className="container_square_item">
-          <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.colorScore} onClick={() => this.props.onClick(this.props.colorScore)} /><span>{this.props.text}</span></label>
-        </div>
-      </div>
+      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.colorScore} onClick={() => this.props.onClick(this.props.colorScore)} /><span>{this.props.text}</span></label>
     );
   }
 }
