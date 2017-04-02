@@ -25,8 +25,8 @@
     font-size: 3.5vw;
   }
 
-  .multicolorCheckbox + span {
-    font-size: 5vw;
+  .multicolorCheckbox span {
+    font-size: 4.5vw;
   }
 
   .multicolorCheckbox .checkboxChoice span {

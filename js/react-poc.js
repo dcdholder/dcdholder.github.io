@@ -4,20 +4,33 @@ class Chart extends React.Component {
 
     this.tagLine = "The Ultimate QT Infograph";
     this.edition = "ENTERPRISE EDITION";
+    this.siteVersion  = "V0.0";
+    this.chartVersion = "Chart Version: 3";
 
     this.requestChartImage = this.requestChartImage.bind(this)
 
-    this.categoryElementMap = {'Emotional': {'Quirks':
+    this.categoryMulticolorCheckboxMap = {'Emotional': {'Quirks':
       ['Adventurous','Ambitious','Analytical','Artistic','Assertive', 'Athletic', 'Confident', 'Creative',
        'Cutesy', 'Cynical', 'Easy-going', 'Empathetic', 'Energetic', 'Honest', 'Humorous', 'Hygienic',
        'Intelligent', 'Kind', 'Lazy', 'Loud', 'Materialistic', 'Messy', 'Outdoorsy', 'Passionate',
        'Reliable', 'Resourceful', 'Romantic', 'Serious', 'Sexual', 'Social', 'Talkative', 'Wise']
     }};
 
+    this.categorySingleColorCheckboxMap = {'Physical': {'Gender': ['Male', 'Female', 'MTF', 'FTM'],
+      'Race': ['White', 'Asian', 'Latin', 'Arab', 'Jewish', 'Black', 'Other'],
+      'Body Type': ['Fit', 'Skinny', 'Thin', 'Medium', 'Chubby', 'Fat'],
+      'Facial Hair': ['None','Moustache','Goatee','Stubble','Beard','Wizard'],
+      'Hair Style': ['Bald', 'Short', 'Medium', 'Long', 'Very Long'],
+      'Hair Color': ['Black', 'Brown', 'Gold', 'Blonde', 'Ginger', 'Other']},
+      'Beliefs': {'Religion': ['Christian', 'Muslim', 'Jew', 'Pagan', 'Satanist', 'Deist', 'Polydeist', 'Agnostic', 'Atheist', 'Other']
+    }};
+
+    this.categoryElementMap = {'singleColorCheckboxSets': this.categorySingleColorCheckboxMap, 'multicolorCheckboxSets': this.categoryMulticolorCheckboxMap};
+
     this.targets = [];
     var possibleTargets = ["You","Them"]
     for (var i=0;i<possibleTargets.length;i++) {
-      this.targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} />);
+      this.targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap['multicolorCheckboxSets']} />);
     }
 
     this.state = {
@@ -30,14 +43,15 @@ class Chart extends React.Component {
   static get defaultGenerateButtonText() { return 'Download'; }
   static get generateAnimationTick() {return 250; }
 
+  //TODO: this needs to be updated to work with multiple element types -- some of which behave differently depending on whether it's 'You' or 'Them'
   getNameValuePairs() {
     var selections = {};
     selections['emotional'] = {};
     selections['emotional']['quirks'] = {};
     selections['emotional']['quirks']['you'] = {};
     selections['emotional']['quirks']['them'] = {};
-    for (var labelIndex in this.categoryElementMap['Emotional']['Quirks']) { //TODO: ditch this nasty short-term hack for a solution which covers all categories and image elements
-      var label = this.categoryElementMap['Emotional']['Quirks'][labelIndex];
+    for (var labelIndex in this.categoryMulticolorCheckboxMap['Emotional']['Quirks']) { //TODO: ditch this nasty short-term hack for a solution which covers all categories and image elements
+      var label = this.categoryMulticolorCheckboxMap['Emotional']['Quirks'][labelIndex];
       for (var targetIndex in ["you","them"]) {
         var targetName = ["you","them"][targetIndex];
         try {
@@ -152,18 +166,19 @@ class Chart extends React.Component {
 
     return (
       <div className="chart">
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
               <div className="chartName">
                 <h1 style={{'textAlign': 'center'}}>{this.tagLine}</h1>
-                <h4 style={{'textAlign': 'center'}}>{this.edition}</h4>
+                <h4 style={{'textAlign': 'center'}}>{this.edition} <b>{this.siteVersion}</b></h4>
+                <h5 style={{'textAlign': 'center'}}>{this.chartVersion}</h5>
               </div>
               {this.targets}
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col md={3}>
               <br />
@@ -195,7 +210,7 @@ class Target extends React.Component {
   render() {
     return (
       <div className="target">
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
               <div className="targetName">
@@ -224,7 +239,7 @@ class Category extends React.Component {
   render() {
     return (
       <div className="category">
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
               <div className="categoryName">
@@ -244,12 +259,13 @@ class MulticolorCheckboxSet extends React.Component {
     super(props);
 
     this.checkboxes     = this.getCheckboxes();
-    this.gridCheckboxes = this.fillGrid(MulticolorCheckboxSet.colsDesktop,this.checkboxes);
+    this.gridCheckboxes = this.fillGrid(this.checkboxes);
   }
 
-  static get colsDesktop()   {return 4;}
-  static get numColsSmall()  {return 2;}
+  static get numColsXSmall() {return 1;}
+  static get numColsSmall()  {return 3;}
   static get numColsMedium() {return 4;}
+  static get numColsLarge()  {return 6;}
 
   getCheckboxes() {
     this.props.labels.sort()
@@ -262,31 +278,33 @@ class MulticolorCheckboxSet extends React.Component {
     return checkboxes;
   }
 
-  fillGrid(numColsDesktop,elements) {
-    var rows = [];
+  fillGrid(elements) {
+    var row = this.fillRow(elements);
+    /*
     for (var i=0;i<Math.ceil(elements.length/numColsDesktop);i++) {
-      rows.push(this.fillRow(numColsDesktop,elements.slice(numColsDesktop*i,numColsDesktop*(i+1)))); //still works when there's only a few elements left for the last row
+      rows.push(this.fillRow(numColsDesktop,elements)); //still works when there's only a few elements left for the last row
     }
+    */
 
     return (
       <div className="multicolorCheckboxes">
         <ReactBootstrap.Grid fluid={true}>
-          {rows}
+          {row}
         </ReactBootstrap.Grid>
       </div>
     );
   }
 
-  fillRow(numColsDesktop,rowElements) {
+  fillRow(rowElements) {
+    /*
     if(rowElements.length>numColsDesktop) {
       throw "Cannot fit more elements into a row than there are columns."
     }
+    */
 
     var cols = [];
-    for(var i=0;i<numColsDesktop;i++) {
-      if (i<rowElements.length) {
-        cols.push(this.fillColumn(numColsDesktop,rowElements[i]));
-      }
+    for(var i=0;i<rowElements.length;i++) {
+      cols.push(this.fillColumn(rowElements[i]));
     }
 
     return (
@@ -296,12 +314,12 @@ class MulticolorCheckboxSet extends React.Component {
     );
   }
 
-  fillColumn(numColsDesktop,element) {
+  fillColumn(element) {
     if (typeof element!==undefined) { //TODO: figure out if this is necessary
       return (
-        <ReactBootstrap.Col md={Math.floor(12/MulticolorCheckboxSet.numColsMedium)} sm={Math.floor(12/MulticolorCheckboxSet.numColsSmall)} >
+        <div className="col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
           {element}
-        </ReactBootstrap.Col>
+        </div>
       );
     }
   }
@@ -309,7 +327,7 @@ class MulticolorCheckboxSet extends React.Component {
   render() { //the grid is wrapped in another div by fillGrid
     return (
       <div className="multicolorCheckboxSet">
-        <ReactBootstrap.Grid>
+        <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col lg={12}>
               <label class="multicolorCheckboxSetName"><h4>{this.props.name}</h4></label>
@@ -391,7 +409,7 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      choices.push(<CheckboxChoice targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} colorScore={i} text={text} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
+      choices.push(<CheckboxChoice targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
     }
 
     //TODO: the extra line breaks here are a hideous kludge
@@ -400,8 +418,6 @@ class MulticolorCheckbox extends React.Component {
         <label class="multicolorCheckboxLabel"><span><b>{this.props.label + ': '}</b></span></label>
         <br />
         {choices}
-        <br />
-        <br />
         <span>{this.state.footer}</span>
       </div>
     );
@@ -411,10 +427,38 @@ class MulticolorCheckbox extends React.Component {
 class CheckboxChoice extends React.Component {
   render() {
     return ( //TODO: figure out how to add multiple optional classes
-      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.colorScore} onClick={() => this.props.onClick(this.props.colorScore)} /><span>{this.props.text}</span></label>
+      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.value} onClick={() => this.props.onClick(this.props.value)} /><span>{this.props.text}</span></label>
     );
   }
 }
+
+/*
+class SingleColorCheckboxSet extends React.Component {
+  render() {
+    choices = [];
+    for (var i=0; i<this.props.descriptors.length) {
+      if (i==0) {
+        side = 'left';
+      } else if (i==this.props.descriptors.length-1) {
+        side = 'right';
+      }
+
+      text = this.props.descriptors[i];
+      choices.push(<CheckboxChoice targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.name} side={side} colorName={'default'} text={text} value={text} onClick={this.makeSelection} percentWidth={percentWidth} />)
+    }
+
+    return (
+      <div className="singleColorCheckboxSet">
+        <label class="singleColorCheckboxLabel"><span><b>{this.props.name + ': '}</b></span></label>
+        <br />
+        {choices}
+        <br />
+        <br />
+      </div>
+    );
+  }
+}
+*/
 
 ReactDOM.render(
   <Chart />,
