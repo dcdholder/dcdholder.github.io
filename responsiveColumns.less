@@ -1,0 +1,52 @@
+//used for 6-4-3-2-1 rows with Bootstrap 4
+
+@sixth:   0.166;
+@quarter: 0.250;
+@third:   0.333;
+@half:    0.500;
+@whole:   1.000;
+
+@baseCellTextSize:   4vw;
+@baseCheckboxHeight: 12vw;
+@baseBorderRadius:   @baseCheckboxHeight / 2;
+
+@xs: ~"(max-width:575px)";
+@sm: ~"(min-width:576px) and (max-width:767px)";
+@md: ~"(min-width:768px) and (max-width:991px)";
+@lg: ~"(min-width:992px) and (max-width:1199px)";
+@xl: ~"(min-width:1200px)";
+
+@media @xs {
+  col-xl-2 { font-size: @baseCellTextSize*@whole; }
+  .checkboxChoice       { height: @baseCheckboxHeight*@whole; }
+  .checkboxChoice.left  { border-radius: @baseBorderRadius*@whole 0px 0px @baseBorderRadius*@whole; }
+  .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@whole @baseBorderRadius*@whole 0px; }
+}
+
+@media @sm {
+  col-xl-2 { font-size: @baseCellTextSize*@half; }
+  .checkboxChoice       { height: @baseCheckboxHeight*@half; }
+  .checkboxChoice.left  { border-radius: @baseBorderRadius*@half 0px 0px @baseBorderRadius*@half; }
+  .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@half @baseBorderRadius*@half 0px; }
+}
+
+@media @md {
+  col-xl-2 { font-size: @baseCellTextSize*@third; }
+  .checkboxChoice       { height: @baseCheckboxHeight*@third; }
+  .checkboxChoice.left  { border-radius: @baseBorderRadius*@third 0px 0px @baseBorderRadius*@third; }
+  .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@third @baseBorderRadius*@third 0px; }
+}
+
+@media @lg {
+  col-xl-2 { font-size: @baseCellTextSize*@quarter; }
+  .checkboxChoice       { height: @baseCheckboxHeight*@quarter; }
+  .checkboxChoice.left  { border-radius: @baseBorderRadius*@quarter 0px 0px @baseBorderRadius*@quarter; }
+  .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@quarter @baseBorderRadius*@quarter 0px; }
+}
+
+@media @xl {
+  col-xl-2 { font-size: @baseCellTextSize*@sixth; }
+  .checkboxChoice       { height: @baseCheckboxHeight*@sixth; }
+  .checkboxChoice.left  { border-radius: @baseBorderRadius*@sixth 0px 0px @baseBorderRadius*@sixth; }
+  .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@sixth @baseBorderRadius*@sixth 0px; }
+}

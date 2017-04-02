@@ -3,6 +3,8 @@
     src: url(https://fonts.gstatic.com/s/passionone/v6/fY6k21F1QT2c_Oc3HRNDwiYE0-AqJ3nfInTTiDXDjU4.woff2);
 }
 
+/* TODO: replace binary breakpoints with more .less */
+
 @media (max-width:1000px)  {
   h1 {
     font-family: Passion,Georgia,serif;
@@ -23,18 +25,6 @@
 
   h5 {
     font-size: 3.5vw;
-  }
-
-  .multicolorCheckbox span {
-    font-size: 4.5vw;
-  }
-
-  .multicolorCheckbox .checkboxChoice span {
-    font-size: 4vw;
-  }
-
-  .checkboxChoice {
-    height:10vw;
   }
 }
 
@@ -59,18 +49,6 @@
   h5 {
     font-size: 0.5vw;
   }
-
-  .multicolorCheckbox + span {
-    font-size: 2vw;
-  }
-
-  .multicolorCheckbox .checkboxChoice span {
-    font-size: 1vw;
-  }
-
-  .checkboxChoice {
-      height:2vw;
-  }
 }
 
 body {
@@ -83,16 +61,6 @@ body {
   border: 1px solid #B7A893;
   margin: 10px 0;
   padding: 3px;
-}
-
-.checkboxChoice.left {
-    border-top-left-radius:15px;
-    border-bottom-left-radius:15px;
-}
-
-.checkboxChoice.right {
-    border-top-right-radius:15px;
-    border-bottom-right-radius:15px;
 }
 
 .checkboxChoice {

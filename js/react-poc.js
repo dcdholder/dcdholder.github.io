@@ -165,7 +165,7 @@ class Chart extends React.Component {
     }
 
     return (
-      <div className="chart">
+      <div className="chart" style={{'width': '98%', 'margin': 'auto'}}>
         <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col>
