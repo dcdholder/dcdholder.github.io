@@ -55,12 +55,21 @@ body {
   background-color:blanchedalmond;
 }
 
+/* adjusting the Bootstrap grid gutter */
+.col-xl-2 {
+  padding-left:  10px;
+  padding-right: 10px;
+}
+
 .multicolorCheckbox {
   border-radius: 10px;
   background-color:#E5D3B8;
   border: 1px solid #B7A893;
-  margin: 10px 0;
-  padding: 3px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 5px 5px 5px 5px;
+  overflow: auto;
+  width: 100;
 }
 
 .checkboxChoice {
@@ -74,6 +83,7 @@ body {
 .multicolorCheckbox .checkboxChoice:hover {
     box-shadow: 1px 2px 4px rgba(0, 0, 0, .5);
     opacity: 0.75;
+    cursor: pointer;
 }
 
 .multicolorCheckbox .checkboxChoice span {
@@ -126,30 +136,233 @@ body {
   display: none;
 }
 
+.checkboxChoice.white {
+  background-color:#FFFFFF;
+}
+
 .checkboxChoice.black {
     background-color:#404040;
 }
 
 .checkboxChoice.red {
-    background-color:#FF0000;
+    background-color:#c0392b;
 }
 
 .checkboxChoice.orange {
-    background-color:#FF7200;
+    background-color:#e67e22;
 }
 
 .checkboxChoice.yellow {
-    background-color:#FFFF00;
+    background-color:#f1c40f;
 }
 
 .checkboxChoice.green {
-    background-color:#00FF00;
+    background-color:#2ecc71;
 }
 
 .checkboxChoice.blue {
-    background-color:#0000FF;
+    background-color:#2980b9;
 }
 
 .checkboxChoice.pink {
+    background-color:#9b59b6;
+}
+
+/* New stuff here */
+.singleColorCheckboxSet {
+  width: 90%;
+}
+
+.leftControlText {
+  float: left;
+}
+
+.rightControlText {
+  float: right;
+}
+
+.controlText {
+  display: block;
+  text-align: center;
+  -moz-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+.colorSelectBox {
+  display: block;
+  padding: 0px;
+  width: 100%;
+}
+
+.checkboxSelectBox {
+  display: block;
+  padding: 0px;
+  width: 100%;
+}
+
+.checkboxSelectChoice {
+  display: block;
+  width: 100%;
+  border-style: solid;
+  border-width: 1px;
+  border-color: black;
+  text-align: center;
+  background-color: white;
+}
+
+.checkboxSelectChoice span {
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.checkboxSelectChoice:hover {
+  cursor: pointer;
+  box-shadow: 0px 0px 3px grey;
+}
+
+.colorSelectChoice:hover {
+  cursor: pointer;
+  box-shadow: 0px 0px 3px grey;
+}
+
+.colorSelectChoice {
+  display: inline;
+  width: 16.6%;
+  height: 25px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: black;
+  margin: 0px;
+  float: left;
+}
+
+.colorSelectChoice span {
+  text-align: center;
+  position:relative;
+  top:50%;
+  transform:translateY(-50%);
+  display: block;
+}
+
+.colorSelectChoice input[type="radio"] {
+  display: none;
+}
+
+.checkboxSelectChoice.top {
+  border-top-left-radius:  5px;
+  border-top-right-radius: 5px;
+}
+
+.checkboxSelectChoice.bottom {
+  border-bottom-left-radius:  5px;
+  border-bottom-right-radius: 5px;
+}
+
+.colorSelectChoice.left {
+  border-top-left-radius:    5px;
+  border-bottom-left-radius: 5px;
+}
+
+.colorSelectChoice.right {
+  border-top-right-radius:    5px;
+  border-bottom-right-radius: 5px;
+}
+
+/*
+.checkboxSelectChoice.white {
+  background-color:#FFFFFF;
+}
+
+.checkboxSelectChoice.black {
+    background-color:#404040;
+}
+
+.checkboxSelectChoice.red {
+    background-color:#FF0000;
+}
+
+.checkboxSelectChoice.orange {
+    background-color:#FF7200;
+}
+
+.checkboxSelectChoice.yellow {
+    background-color:#FFFF00;
+}
+
+.checkboxSelectChoice.green {
+    background-color:#00FF00;
+}
+
+.checkboxSelectChoice.blue {
+    background-color:#0000FF;
+}
+
+.checkboxSelectChoice.pink {
     background-color:#FF00FF;
+}
+*/
+
+.checkboxSelectChoice.white {
+  background-color:#FFFFFF;
+}
+
+.checkboxSelectChoice.black {
+    background-color:#404040;
+}
+
+.checkboxSelectChoice.red {
+    background-color:#c0392b;
+}
+
+.checkboxSelectChoice.orange {
+    background-color:#e67e22;
+}
+
+.checkboxSelectChoice.yellow {
+    background-color:#f1c40f;
+}
+
+.checkboxSelectChoice.green {
+    background-color:#2ecc71;
+}
+
+.checkboxSelectChoice.blue {
+    background-color:#2980b9;
+}
+
+.checkboxSelectChoice.pink {
+    background-color:#9b59b6;
+}
+
+.colorSelectChoice.white {
+  background-color:#FFFFFF;
+}
+
+.colorSelectChoice.black {
+    background-color:#404040;
+}
+
+.colorSelectChoice.red {
+    background-color:#c0392b;
+}
+
+.colorSelectChoice.orange {
+    background-color:#e67e22;
+}
+
+.colorSelectChoice.yellow {
+    background-color:#f1c40f;
+}
+
+.colorSelectChoice.green {
+    background-color:#2ecc71;
+}
+
+.colorSelectChoice.blue {
+    background-color:#2980b9;
+}
+
+.colorSelectChoice.pink {
+    background-color:#9b59b6;
 }
