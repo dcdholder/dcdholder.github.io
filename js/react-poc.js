@@ -1,5 +1,6 @@
 /*jshint esversion: 6*/
 /*jshint sub:true*/
+/* jshint loopfunc: true */
 
 class Chart extends React.Component {
   constructor (props) { //TODO: change this to a yaml parser when you're done testing out the basic UI
@@ -45,12 +46,15 @@ class Chart extends React.Component {
       'Other Drugs': {'numCells':3, 'left': 'Never', 'right': 'Frequently'}}
     };
 
+    this.categorySingleColorYou2DCheckboxMap = {'Beliefs': {'Economic Views': {'top': 'Capitalist', 'bottom': 'Socialist', 'left': 'Free Market', 'right': 'Regulated Market', 'cellDimensions': 5}}};
+
     this.categoryElementMap = {
-      'singleColorYouCheckboxSets': this.categorySingleColorYouCheckboxMap,
-      'multicolorCheckboxSets':     this.categoryMulticolorCheckboxMap,
-      'booleanSelectBars':          this.categoryBooleanBarMap,
-      'numericalSelectBars':        this.categoryNumericalBarMap,
-      'fuzzySelectBars':            this.categoryFuzzyBarMap
+      'singleColorYouCheckboxSets':   this.categorySingleColorYouCheckboxMap,
+      'multicolorCheckboxSets':       this.categoryMulticolorCheckboxMap,
+      'booleanSelectBars':            this.categoryBooleanBarMap,
+      'numericalSelectBars':          this.categoryNumericalBarMap,
+      'fuzzySelectBars':              this.categoryFuzzyBarMap,
+      'singleColorYou2DCheckboxSets': this.categorySingleColorYou2DCheckboxMap
     };
 
     this.targets = [];
@@ -108,8 +112,6 @@ class Chart extends React.Component {
     var fullUri = Chart.restServerDomain + paramsUri;
 
     return fullUri;
-
-    //return 'http://hollerache.pythonanywhere.com/new?chartdata=%7B%22emotional%22%3A%7B%22quirks%22%3A%7B%22you%22%3A%7B%22adventurous%22%3A%221%22%2C%22ambitious%22%3A%221%22%2C%22analytical%22%3A%222%22%2C%22artistic%22%3A%223%22%2C%22assertive%22%3A%224%22%7D%2C%22them%22%3A%7B%22reliable%22%3A%220%22%2C%22Resourceful%22%3A%221%22%2C%22romantic%22%3A%222%22%2C%22serious%22%3A%223%22%2C%22sexual%22%3A%222%22%2C%22social%22%3A%225%22%7D%7D%7D%7D'
   }
 
   showGenerateWaitAnimation() {
@@ -311,6 +313,11 @@ class Category extends React.Component {
       singleColorYouElements.push(<BooleanSelectBar name={this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex]} youOrThem={this.props.targetName} />);
     }
 
+    for (let singleColorYou2DCheckboxSetName in this.props.elementMap['singleColorYou2DCheckboxSets']) {
+      let properties = this.props.elementMap['singleColorYou2DCheckboxSets'][singleColorYou2DCheckboxSetName];
+      singleColorYouElements.push(<SingleColorYou2DCheckboxSet name={singleColorYou2DCheckboxSetName} youOrThem={this.props.targetName} cellDimensions={properties.cellDimensions} top={properties.top} bottom={properties.bottom} left={properties.left} right={properties.right} />);
+    }
+
     var wrappedSingleColorYouElements = Category.fillGrid(singleColorYouElements);
 
     var multicolorYouElements = [];
@@ -473,8 +480,13 @@ class CheckboxChoice extends React.Component {
 //props: color, position, text
 class ColorSelectChoice extends React.Component {
   render() {
+    var activeBorder = '';
+    if (this.props.activeBorder) {
+      activeBorder = 'activeBorder';
+    }
+
     return (
-      <label className={'colorSelectChoice ' + this.props.color + ' ' + this.props.position}><input type='radio' onClick={() => this.props.onClick(this.props.color)} /><span>{this.props.text}</span></label>
+      <label className={'colorSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + activeBorder}><input type='radio' onClick={() => {this.props.onClick[0](this.props.color); this.props.onClick[1](this.props.color);}} /><span>{this.props.text}</span></label>
     );
   }
 }
@@ -483,7 +495,22 @@ class ColorSelectChoice extends React.Component {
 class ColorSelectBar extends React.Component {
   static get colors() {return ['red','orange','yellow','green','blue','pink'];}
 
+  constructor(props) {
+    super(props);
+
+    this.frameColorSelection = this.frameColorSelection.bind(this);
+
+    this.state = {
+      selectedColor: 'none'
+    };
+  }
+
+  frameColorSelection(color) {
+    this.setState({selectedColor: color});
+  }
+
   render() {
+    var hasActiveBorder;
     var colorSelectChoices = [];
     for (var i=0;i<ColorSelectBar.colors.length;i++) {
       let position;
@@ -499,7 +526,14 @@ class ColorSelectBar extends React.Component {
         position = 'middle';
         text = '';
       }
-      colorSelectChoices.push(<ColorSelectChoice color={ColorSelectBar.colors[i]} position={position} text={text} onClick={this.props.onClick} />);
+
+      if (ColorSelectBar.colors[i]==this.state.selectedColor) {
+        hasActiveBorder = true;
+      } else {
+        hasActiveBorder = false;
+      }
+
+      colorSelectChoices.push(<ColorSelectChoice color={ColorSelectBar.colors[i]} activeBorder={hasActiveBorder} position={position} text={text} onClick={[this.props.onClick, this.frameColorSelection]} />);
     }
 
     return (
@@ -569,6 +603,149 @@ class ElementName extends React.Component {
   }
 }
 
+//props: name, youOrThem, cellDimensions, top, bottom, left, right
+class SingleColorYou2DCheckboxSet extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.setActiveColor = this.setActiveColor.bind(this);
+    this.getActiveColor = this.getActiveColor.bind(this);
+
+    if (this.props.youOrThem.toLowerCase()=="you") {
+      this.activeColor = 'green';
+    } else {
+      this.activeColor = 'white';
+    }
+
+    this.optionColors = [];
+    for (let j=0; j<this.props.cellDimensions; j++) {
+      this.optionColors[j] = [];
+      for (let i=0; i<this.props.cellDimensions; i++) {
+        this.optionColors[j][i] = 'white';
+      }
+    }
+
+    this.state = {
+      optionColors: this.optionColors
+    };
+  }
+
+  setActiveColor(color) {
+    this.activeColor = color;
+  }
+
+  getActiveColor(colIndex, rowIndex) {
+    var newOptionColors = [];
+    if (this.props.youOrThem.toLowerCase()=="you") {
+      for(let j=0; j<this.props.cellDimensions; j++) {
+        newOptionColors[j] = [];
+        for(let i=0; i<this.props.cellDimensions; i++) {
+          if (i==colIndex && j==rowIndex) {
+            newOptionColors[j][i] = 'green';
+          } else {
+            newOptionColors[j][i] = 'white';
+          }
+        }
+      }
+    } else {
+      newOptionColors = this.state.optionColors;
+      newOptionColors[rowIndex][colIndex] = this.activeColor;
+    }
+    this.setState({optionColors: newOptionColors});
+  }
+
+  fillTableRow(rowIndex) {
+    return (
+      <tr>
+        {this.fillTableCols(rowIndex)}
+      </tr>
+    );
+  }
+
+  fillTableCols(rowIndex) {
+    var rowContents = [];
+
+    if (rowIndex===0) {
+      rowContents.push(<td rowSpan={this.props.cellDimensions}><span className="leftVerticalText">{this.props.left.replace(/ /g, "\u00a0")}</span></td>);
+    }
+
+    for (let i=0;i<this.props.cellDimensions;i++) {
+      var cornerStatus = '';
+      if (i===0 && rowIndex===0) {
+        cornerStatus = 'topLeft';
+      } else if (i===0 && rowIndex===this.props.cellDimensions-1) {
+        cornerStatus = 'bottomLeft';
+      } else if (i===this.props.cellDimensions-1 && rowIndex===0) {
+        cornerStatus = 'topRight';
+      } else if (i===this.props.cellDimensions-1 && rowIndex===this.props.cellDimensions-1) {
+        cornerStatus = 'bottomRight';
+      }
+
+      rowContents.push(<td className={"visibleBorder " + this.state.optionColors[rowIndex][i] + ' ' + cornerStatus} onClick={() => this.getActiveColor(i,rowIndex)}>&nbsp;</td>);
+    }
+
+    if (rowIndex===0) {
+      rowContents.push(<td rowSpan={this.props.cellDimensions}><span className="rightVerticalText">{this.props.right.replace(/ /g, "\u00a0")}</span></td>);
+    }
+
+    return rowContents;
+  }
+
+  render() {
+    var tableContentsHtml = [];
+
+    var htmlContentsPrefix = (
+      <tr>
+        <td></td>
+        <td colSpan={this.props.cellDimensions} className="topText"><span>{this.props.top}</span></td>
+        <td></td>
+      </tr>
+    );
+
+    var htmlContentsPostfix = (
+      <tr>
+        <td></td>
+        <td colSpan={this.props.cellDimensions} className="bottomText"><span>{this.props.bottom}</span></td>
+        <td></td>
+      </tr>
+    );
+
+    tableContentsHtml.push(htmlContentsPrefix);
+    for (let i=0;i<this.props.cellDimensions;i++) {
+      tableContentsHtml.push(this.fillTableRow(i));
+    }
+    tableContentsHtml.push(htmlContentsPostfix);
+
+    //TODO: DRY
+    if (this.props.youOrThem.toLowerCase()=='you') {
+      return (
+        <div className="multicolorCheckbox">
+          <ElementName name={this.props.name} />
+          <table>
+            <tbody>
+              {tableContentsHtml}
+            </tbody>
+          </table>
+          <SingleColorYouControlsText youOrThem={this.props.youOrThem} />
+        </div>
+      );
+    } else {
+      return (
+        <div className="multicolorCheckbox">
+          <ElementName name={this.props.name} />
+          <table>
+            <tbody>
+              {tableContentsHtml}
+            </tbody>
+          </table>
+          <SingleColorYouControlsText youOrThem={this.props.youOrThem} />
+          <ColorSelectBar onClick={this.setActiveColor} />
+        </div>
+      );
+    }
+  }
+}
+
 //props: name, youOrThem, possibleOptions
 class SingleColorYouCheckboxSet extends React.Component {
   constructor(props) {
@@ -598,7 +775,6 @@ class SingleColorYouCheckboxSet extends React.Component {
   }
 
   getActiveColor(optionIndex) {
-    console.log("Made it to getActive");
     var newOptionColors = [];
     if (this.props.youOrThem.toLowerCase()=="you") {
       for(let i=0; i<this.optionColors.length; i++) {
@@ -612,7 +788,6 @@ class SingleColorYouCheckboxSet extends React.Component {
       newOptionColors = this.state.optionColors;
       newOptionColors[optionIndex] = this.activeColor;
     }
-    console.log(newOptionColors);
     this.setState({optionColors: newOptionColors});
   }
 
