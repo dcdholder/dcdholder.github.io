@@ -862,8 +862,8 @@ class NumericalSelectBar extends React.Component {
       }
 
       if (this.props.name=='Height') { //TODO: Messy, messy, messy.
-        minOfRange = Math.floor(minOfRange / 12) + '\'' + minOfRange % 12;
-        maxOfRange = Math.floor(maxOfRange / 12) + '\'' + maxOfRange % 12;
+        minOfRange = Math.floor(minOfRange / 12) + '\'' + minOfRange % 12 + '\"';
+        maxOfRange = Math.floor(maxOfRange / 12) + '\'' + maxOfRange % 12 + '\"';
       }
 
       if (i===0) {
