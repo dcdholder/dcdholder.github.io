@@ -201,7 +201,7 @@ class Chart extends React.Component {
     }
 
     return (
-      <div className="chart">
+      <div className="chart fillSmallScreen">
         <ChartName />
         {this.targets}
         <ReactBootstrap.Grid fluid={true}>
@@ -231,6 +231,21 @@ class ChartName extends React.Component {
               </tr>
               <tr>
                 <td className="infographTd"><h2>QT Infograph</h2></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="versionInfo">
+          <table>
+            <tbody>
+              <tr>
+                <td className="paddingTd">&nbsp;</td>
+              </tr>
+              <tr>
+                <td className="webVersionTd">Web Version: 0.1</td>
+              </tr>
+              <tr>
+                <td className="chartVersionTd">Chart Version: 3.0</td>
               </tr>
             </tbody>
           </table>

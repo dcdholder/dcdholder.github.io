@@ -67,7 +67,6 @@ body {
   border: 2px solid black;
   margin-top: 5px;
   background-color: #ffebcc;
-  clear: both;
 }
 
 .category {
@@ -166,10 +165,20 @@ details summary:hover {
   width: 90%;
 }
 
+.controlText {
+  display: block;
+  text-align: center;
+  -moz-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
 .leftControlText {
   float: left;
 }
-details open animation
+
+.rightControlText {
+  float: right;
 }
 
 .colorSelectBox {
@@ -478,11 +487,9 @@ table {
 
 .versionInfo {
   clear: both;
-  position: absolute;
+  position: relative;
   float: right;
   display: inline-block;
-  bottom: 0px;
-  right: 0px;
 }
 
 .theTd {
