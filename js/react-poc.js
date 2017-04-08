@@ -11,7 +11,6 @@ class Chart extends React.Component {
     this.retrieve = this.retrieve.bind(this);
 
     this.tagLine = "The Ultimate QT Infograph";
-    this.edition = "ENTERPRISE EDITION";
     this.siteVersion  = "V0.0";
     this.chartVersion = "Chart Version: 3";
 
@@ -202,19 +201,9 @@ class Chart extends React.Component {
     }
 
     return (
-      <div className="chart" style={{'width': '98%', 'margin': 'auto'}}>
-        <ReactBootstrap.Grid fluid={true}>
-          <ReactBootstrap.Row>
-            <ReactBootstrap.Col>
-              <div className="chartName">
-                <h1 style={{'textAlign': 'center'}}>{this.tagLine}</h1>
-                <h4 style={{'textAlign': 'center'}}>{this.edition} <b>{this.siteVersion}</b></h4>
-                <h5 style={{'textAlign': 'center'}}>{this.chartVersion}</h5>
-              </div>
-              {this.targets}
-            </ReactBootstrap.Col>
-          </ReactBootstrap.Row>
-        </ReactBootstrap.Grid>
+      <div className="chart">
+        <ChartName />
+        {this.targets}
         <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col md={3}>
@@ -224,6 +213,28 @@ class Chart extends React.Component {
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
+      </div>
+    );
+  }
+}
+
+class ChartName extends React.Component {
+  render() {
+    return (
+      <div className="chartName">
+        <div className="titleText">
+          <table>
+            <tbody>
+              <tr>
+                <td rowSpan="2" className="theTd"><h1>The</h1></td>
+                <td className="ultimateTd"><h2>Ultimate</h2></td>
+              </tr>
+              <tr>
+                <td className="infographTd"><h2>QT Infograph</h2></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -265,16 +276,12 @@ class Target extends React.Component {
 
     return (
       <div className="target">
-        <ReactBootstrap.Grid fluid={true}>
-          <ReactBootstrap.Row>
-            <ReactBootstrap.Col>
-              <div className="targetName">
-                <h2><b>{this.props.targetName}</b></h2>
-              </div>
-            </ReactBootstrap.Col>
-          </ReactBootstrap.Row>
-        </ReactBootstrap.Grid>
-        {categories}
+        <div className="targetName">
+          <h2><b>{this.props.targetName}</b></h2>
+        </div>
+        <div className="targetBody">
+          {categories}
+        </div>
       </div>
     );
   }
@@ -368,19 +375,15 @@ class Category extends React.Component {
     }
 
     return (
-      <div className="category">
-        <ReactBootstrap.Grid fluid={true}>
-          <ReactBootstrap.Row>
-            <ReactBootstrap.Col>
-              <div className="categoryName">
-                <h3><b>{this.props.categoryName}</b></h3>
-              </div>
-            </ReactBootstrap.Col>
-          </ReactBootstrap.Row>
-        </ReactBootstrap.Grid>
-        {wrappedSingleColorYouElements}
-        {multicolorYouElements}
-      </div>
+      <details className="category" open>
+        <summary className="categoryName">
+          {this.props.categoryName}
+        </summary>
+        <div className="categoryBody">
+          {wrappedSingleColorYouElements}
+          {multicolorYouElements}
+        </div>
+      </details>
     );
   }
 }

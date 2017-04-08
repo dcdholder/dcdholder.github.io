@@ -1,58 +1,15 @@
+/*
 @font-face {
     font-family: Passion;
     src: url(https://fonts.gstatic.com/s/passionone/v6/fY6k21F1QT2c_Oc3HRNDwiYE0-AqJ3nfInTTiDXDjU4.woff2);
 }
+*/
+@import url('https://fonts.googleapis.com/css?family=Montserrat');
 
 /* TODO: replace binary breakpoints with more .less */
 
-@media (max-width:1000px)  {
-  h1 {
-    font-family: Passion,Georgia,serif;
-    font-size: 7vw;
-  }
-
-  h2 {
-    font-size: 6vw;
-  }
-
-  h3 {
-    font-size: 5vw;
-  }
-
-  h4 {
-    font-size: 4vw;
-  }
-
-  h5 {
-    font-size: 3.5vw;
-  }
-}
-
-@media (min-width:1001px) {
-  h1 {
-    font-family: Passion,Georgia,serif;
-    font-size: 2.5vw;
-  }
-
-  h2 {
-    font-size: 1.8vw;
-  }
-
-  h3 {
-    font-size: 1.2vw;
-  }
-
-  h4 {
-    font-size: 1.0vw;
-  }
-
-  h5 {
-    font-size: 0.5vw;
-  }
-}
-
 body {
-  background-color:blanchedalmond;
+  background-color:#c6473e;
 }
 
 /* adjusting the Bootstrap grid gutter */
@@ -63,11 +20,12 @@ body {
 
 .multicolorCheckbox {
   border-radius: 10px;
-  background-color:#E5D3B8;
-  border: 1px solid #B7A893;
+  /*background-color:#E5D3B8;*/
+  background-color:#ffe0b3;
+  /*border: 1px solid #B7A893;*/
   margin-top: 10px;
   margin-bottom: 10px;
-  padding: 5px 5px 5px 5px;
+  padding: 5% 5% 5% 5%;
   overflow: auto;
   width: 100;
 }
@@ -96,40 +54,75 @@ body {
     display:block;
 }
 
+.chart {
+  width: 85%;
+  margin: auto;
+}
+
 .target {
-  border-top-right-radius:10px;
-  border-top-left-radius:10px;
-  border: 1px solid #B7A893;
+  border-top-left-radius:20px;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border: 2px solid black;
   margin-top: 5px;
+  background-color: #ffebcc;
+  clear: both;
 }
 
 .category {
-  border: 1px solid #B7A893;
+}
+
+.targetBody {
+  border-top: 2px solid black;
+}
+
+.categoryBody {
+  /*border-top: 2px solid black;*/
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #ffd699;
 }
 
 .chartName {
   color: white;
   font-family: Cambria,Georgia,serif;
-  background-color:#55452F;
-  border-radius: 10px;
-  border: 4px solid #3b2f1f;
   margin: 3px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  position: relative;
 }
 
 .targetName {
-  border-top-left-radius:10px;
-  border-top-right-radius:10px;
-  border-bottom: 3px solid #B7A893;
-  margin-left: 3px;
-  margin-right: 3px;
-  padding: 3px;
+  width: 100%;
+  padding-left: 15px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+}
+
+.targetName h1, h2, h3, h4, h5 {
+  margin-bottom: 2px;
 }
 
 .categoryName {
-  border-top-left-radius:10px;
-  border-top-right-radius:10px;
-  border-bottom: 3px solid #B7A893;
-  padding: 3px;
+  width: 100%;
+  padding-left: 15px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+  border-bottom: 2px solid #ffd699;
+}
+
+.categoryName h1, h2, h3, h4, h5 {
+  margin-bottom: 2px;
+}
+
+details summary {
+  font-size: 18px;
+  outline: none;
+}
+
+details summary:hover {
+  cursor: pointer;
 }
 
 .checkboxChoice input {
@@ -176,17 +169,7 @@ body {
 .leftControlText {
   float: left;
 }
-
-.rightControlText {
-  float: right;
-}
-
-.controlText {
-  display: block;
-  text-align: center;
-  -moz-user-select: none;
-  user-select: none;
-  cursor: default;
+details open animation
 }
 
 .colorSelectBox {
@@ -390,7 +373,7 @@ td:hover {
 
 table {
   width: 100%;
-  height: 400px;
+  height: 15vw;
   /*border-collapse: collapse;*/
   border-spacing: 0px;
 }
@@ -470,4 +453,71 @@ table {
 .activeBorder {
   position: relative;
   border: 3px solid black;
+}
+
+/*title*/
+.chartName table {
+  color: white;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  display:table;
+}
+
+.chartName td {
+  /*border: 1px solid blue;*/
+  font-family: 'Montserrat', sans-serif;
+  font-weight: black;
+  width: auto;
+  height: auto;
+}
+
+.titleText {
+  display: inline-block;
+}
+
+.versionInfo {
+  clear: both;
+  position: absolute;
+  float: right;
+  display: inline-block;
+  bottom: 0px;
+  right: 0px;
+}
+
+.theTd {
+  vertical-align:bottom;
+  text-align:center;
+}
+
+.ultimateTd {
+  vertical-align:bottom;
+}
+
+.infographTd {
+  vertical-align:top;
+}
+
+.chartVersionTd {
+  text-align:right;
+}
+
+.webVersionTd {
+  text-align:right;
+}
+
+.paddingTd {
+  height: 10px;
+}
+
+.chartName td h1 {
+  font-size: 80px;
+  margin: 0px;
+  padding: 0px;
+}
+
+.chartName td h2 {
+  font-size: 29px;
+  margin: 0px;
+  margin-left: 5px;
 }
