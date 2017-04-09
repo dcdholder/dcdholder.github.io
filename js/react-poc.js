@@ -60,6 +60,8 @@ class Chart extends React.Component {
       'singleColorYou2DCheckboxSets': this.categorySingleColorYou2DCheckboxMap
     };
 
+    this.allowDownloadClick = true; //prevent the backend from being POST-spammed through the frontend by download-button mashing
+
     this.targets = [];
     var possibleTargets = ["You","Them"];
     for (var i=0;i<possibleTargets.length;i++) {
@@ -161,10 +163,12 @@ class Chart extends React.Component {
   }
 
   requestChartImage() {
+    if (!this.allowDownloadClick) { return; }
+
     var httpRequest = new XMLHttpRequest();
 
-    console.log(this.jsonFrontend2BackendRepresentation());
-    console.log(JSON.stringify(this.jsonFrontend2BackendRepresentation()).length);
+    //console.log(this.jsonFrontend2BackendRepresentation());
+    //console.log(JSON.stringify(this.jsonFrontend2BackendRepresentation()).length);
     /*
     //refuse to go further and display a warning if fields are unselected
     if (!this.allFieldsSelected()) {
@@ -176,20 +180,23 @@ class Chart extends React.Component {
 */
 
     this.showGenerateWaitAnimation();
-    console.log(this.imageRequestUri());
+    //console.log(this.imageRequestUri());
     httpRequest.open('POST', this.imageRequestUri(), true);
     httpRequest.setRequestHeader("Content-type", "application/json");
     httpRequest.responseType = "blob";
 
     var that = this;
+    that.allowDownloadClick = false;
     httpRequest.onreadystatechange = function() {
       if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
         var imageBlob = new Blob([httpRequest.response], {type: 'application/octet-stream'});
         that.hideGenerateWaitAnimation();
+        that.allowDownloadClick = true;
         saveAs(imageBlob, "chart.png");
       } else if (httpRequest.status>=400) { //something went wrong
         //console.log('Failed response.');
         that.hideGenerateWaitAnimation();
+        that.allowDownloadClick = true;
       }
     };
     httpRequest.send(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
