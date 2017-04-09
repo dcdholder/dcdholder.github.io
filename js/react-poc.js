@@ -25,7 +25,7 @@ class Chart extends React.Component {
     }};
 
     this.categorySingleColorYouCheckboxMap = {'Physical': {'Gender': ['Male', 'Female', 'MTF', 'FTM'],
-      'Race': ['White', 'Asian', 'Latin', 'Arab', 'Jewish', 'Black', 'Other'],
+      'Race': ['White', 'Asian', 'Latin', 'Arab', 'Black', 'Other'],
       'Body Type': ['Fit', 'Skinny', 'Thin', 'Medium', 'Chubby', 'Fat'],
       'Facial Hair': ['None','Moustache','Goatee','Stubble','Beard','Wizard'],
       'Hair Style': ['Bald', 'Short', 'Medium', 'Long', 'Very Long'],
