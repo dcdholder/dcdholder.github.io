@@ -75,7 +75,7 @@ class Chart extends React.Component {
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
   static get restServerDomain() { return 'http://hollerache.pythonanywhere.com/'; }
   static get defaultGenerateButtonText() { return 'Download'; }
-  static get generateAnimationTick() {return 250; }
+  static get generateAnimationTick() {return 1000; }
 
   retrieve(childJson) {
     for (let firstName in childJson) {
@@ -125,6 +125,8 @@ class Chart extends React.Component {
   showGenerateWaitAnimation() {
     this.setState({generateButtonText: 'Generating'});
 
+    //TODO: figure out how to get this working in Firefox
+    /*
     var that = this;
     var periodCount = 0;
     this.generationAnimationTimer = setInterval( function() { //keep timer short, so that
@@ -135,6 +137,7 @@ class Chart extends React.Component {
         periodCount = 0;
       }
     }, that.generateAnimationTick);
+    */
   }
 
   hideGenerateWaitAnimation() {
@@ -204,15 +207,9 @@ class Chart extends React.Component {
       <div className="chart fillSmallScreen">
         <ChartName />
         {this.targets}
-        <ReactBootstrap.Grid fluid={true}>
-          <ReactBootstrap.Row>
-            <ReactBootstrap.Col md={3}>
-              <br />
-              <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
-              <br />
-            </ReactBootstrap.Col>
-          </ReactBootstrap.Row>
-        </ReactBootstrap.Grid>
+        <div className="footerButtons">
+          <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
+        </div>
       </div>
     );
   }
