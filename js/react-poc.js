@@ -11,8 +11,8 @@ class Chart extends React.Component {
     this.retrieve = this.retrieve.bind(this);
 
     this.tagLine = "The Ultimate QT Infograph";
-    this.siteVersion  = "V0.0";
-    this.chartVersion = "Chart Version: 3";
+    this.webVersion  = "1.0";
+    this.chartVersion = "3.0";
 
     this.requestChartImage = this.requestChartImage.bind(this);
 
@@ -309,7 +309,7 @@ class Chart extends React.Component {
   render() {
     return (
       <div className="chart fillSmallScreen">
-        <ChartName />
+        <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
         {this.targets}
         <div className="chartFooter">
           <div className="footerButtons">
@@ -346,10 +346,10 @@ class ChartName extends React.Component {
                 <td className="paddingTd">&nbsp;</td>
               </tr>
               <tr>
-                <td className="webVersionTd">Web Version: 0.1</td>
+                <td className="webVersionTd">Web Version: {this.props.webVersion}</td>
               </tr>
               <tr>
-                <td className="chartVersionTd">Chart Version: 3.0</td>
+                <td className="chartVersionTd">Chart Version: {this.props.chartVersion}</td>
               </tr>
             </tbody>
           </table>
