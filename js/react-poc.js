@@ -70,12 +70,13 @@ class Chart extends React.Component {
 
     this.state = {
       generateButtonText: 'Download',
-      errorMessage: ''
+      errorMessage: '',
+      errorMessageDisplayMode: 'off'
     };
   }
 
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
-  static get restServerDomain() { return 'http://hollerache.pythonanywhere.com/'; }
+  static get restServerDomain() { return 'http://Hollerache.pythonanywhere.com/'; }
   static get defaultGenerateButtonText() { return 'Download'; }
   static get generateAnimationTick() {return 1000; }
 
@@ -111,12 +112,80 @@ class Chart extends React.Component {
     return backendJson;
   }
 
-  allFieldsSelected() {
-    try {
-      getNameValuePairs();
-    } catch (error) {
-      return false;
+  missingElements() {
+    var missingElements = {};
+    for (let targetName in this.json) {
+      missingElements[targetName] = {};
+      for (let categoryName in this.json[targetName]) {
+        missingElements[targetName][categoryName] = [];
+        for (let elementName in this.json[targetName][categoryName]) {
+          let nonNoneElementExists = false;
+          let noneElementExists    = false;
+          for (let subelementName in this.json[targetName][categoryName][elementName]) {
+            if (this.json[targetName][categoryName][elementName][subelementName]!='none') {
+              nonNoneElementExists = true;
+            } else {
+              noneElementExists = true;
+            }
+          }
+
+          //whether 'you' or 'them', ever MC CB in the set should be filled out
+          if (categoryName in this.categoryMulticolorCheckboxMap) {
+            if (elementName in this.categoryMulticolorCheckboxMap[categoryName]) {
+              if (noneElementExists) {
+                missingElements[targetName][categoryName].push(elementName);
+                continue;
+              }
+            }
+          }
+
+          if (targetName.toLowerCase()=='you') {
+            if (!nonNoneElementExists) {
+              missingElements[targetName][categoryName].push(elementName);
+              continue;
+            }
+          }
+
+          if (targetName.toLowerCase()=='them') {
+            if (noneElementExists) {
+              missingElements[targetName][categoryName].push(elementName);
+              continue;
+            }
+          }
+        }
+      }
     }
+
+    return missingElements;
+  }
+
+  firstMissingElement() {
+    var missingElements = this.missingElements();
+    for (let targetName in missingElements) {
+      for (let categoryName in missingElements[targetName]) {
+        if (missingElements[targetName][categoryName].length>0) {
+          let singleMissingElementHash = {};
+          singleMissingElementHash[targetName] = {};
+          singleMissingElementHash[targetName][categoryName] = missingElements[targetName][categoryName][0];
+
+          return singleMissingElementHash; //returns a multilevel hash of a single element indexed by its target and category
+        }
+      }
+    }
+
+    throw "There were no missing elements to return.";
+  }
+
+  noMissingElements() {
+    var missingElements = this.missingElements();
+    for (let targetName in missingElements) {
+      for (let categoryName in missingElements[targetName]) {
+        if (missingElements[targetName][categoryName].length!==0) {
+          return false;
+        }
+      }
+    }
+
     return true;
   }
 
@@ -151,19 +220,47 @@ class Chart extends React.Component {
   }
 
   showEmptyFieldWarning() {
-    this.setState({errorMessage: 'You have one or more empty fields.'});
+    var missingElement = this.firstMissingElement();
+    for (let targetName in missingElement) {
+      for (let categoryName in missingElement[targetName]) {
+        let elementName = missingElement[targetName][categoryName];
+        this.setState({errorMessage: 'Missing field in \'' + this.capitalize(elementName) + '\' under \'' + this.capitalize(targetName) + '\' → \'' + this.capitalize(categoryName) + '\'', errorMessageDisplayMode: 'on'});
+        return;
+      }
+    }
   }
 
-  showRequestErrorWarning() {
-    this.setState({errorMessage: 'The server must be busy. Try again later.'});
+  showFailedRequestWarning() {
+    this.setState({errorMessage: 'Server error, try again later.', errorMessageDisplayMode: 'on'});
+    window.scrollTo(0,document.body.scrollHeight);
+  }
+
+  capitalize(string) {
+    var words = string.toLowerCase().split(' ');
+    for (let i=0;i<words.length;i++) {
+      let letters = words[i].split('');
+      letters[0] = letters[0].toUpperCase();
+      words[i] = letters.join('');
+    }
+
+    return words.join('');
   }
 
   hideProcessingErrorWarning() {
-    this.setState({errorMessage: ''});
+    this.setState({errorMessage: '', errorMessageDisplayMode: 'off'});
   }
 
   requestChartImage() {
-    if (!this.allowDownloadClick) { return; }
+    if (!this.allowDownloadClick) {
+      return;
+    }
+
+    this.hideProcessingErrorWarning();
+
+    if (!this.noMissingElements()) {
+      this.showEmptyFieldWarning();
+      return;
+    }
 
     var httpRequest = new XMLHttpRequest();
 
@@ -195,27 +292,30 @@ class Chart extends React.Component {
         saveAs(imageBlob, "chart.png");
       } else if (httpRequest.status>=400) { //something went wrong
         //console.log('Failed response.');
+        that.showFailedRequestWarning();
         that.hideGenerateWaitAnimation();
         that.allowDownloadClick = true;
       }
     };
+    httpRequest.onerror = function() {
+      that.showFailedRequestWarning();
+      that.hideGenerateWaitAnimation();
+      that.allowDownloadClick = true;
+    };
+    //httpRequest.withCredentials = true;//TODO: might need this later (for when I'm using sessions)
     httpRequest.send(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
   }
 
   render() {
-    var errorMessageDisplayMode;
-    if (this.state.errorMessage==='') {
-      errorMessageDisplayMode = 'none';
-    } else {
-      errorMessageDisplayMode = 'block';
-    }
-
     return (
       <div className="chart fillSmallScreen">
         <ChartName />
         {this.targets}
-        <div className="footerButtons">
-          <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
+        <div className="chartFooter">
+          <div className="footerButtons">
+            <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
+          </div>
+          <div className={'errorMessage ' + this.state.errorMessageDisplayMode}>{this.state.errorMessage}</div>
         </div>
       </div>
     );
@@ -449,7 +549,7 @@ class MulticolorCheckboxSet extends React.Component {
         <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col lg={12}>
-              <label className="multicolorCheckboxSetName"><h4>{this.props.name}</h4></label>
+              <label className="multicolorCheckboxSetName">{this.props.name}</label>
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
@@ -462,7 +562,7 @@ class MulticolorCheckboxSet extends React.Component {
 class MulticolorCheckbox extends React.Component {
   static colorNames(index) { return(['red','orange','yellow','green','blue','pink'][index]); }
 
-  static get youMulticolorLabels()  { return ['Very Poorly', 'Poorly', 'Somewhat Accurately', 'Accurately', 'Very Accurately']; }
+  static get youMulticolorLabels()  { return ['Very Poorly', 'Poorly', 'Fairly Well', 'Accurately', 'Very Accurately']; }
   static get themMulticolorLabels() { return ['Awful', 'Bad', 'Acceptable', 'Good', 'Very Good', 'Perfect']; }
 
   constructor(props) {
@@ -550,7 +650,7 @@ class MulticolorCheckbox extends React.Component {
         <label className="multicolorCheckboxLabel"><span><b>{this.props.label + ':'}</b></span></label>
         <br />
         {choices}
-        <span>{this.state.footer}</span>
+        <span className="multicolorCheckboxFooter">{this.state.footer}</span>
       </div>
     );
   }
@@ -781,6 +881,7 @@ class SingleColorYou2DCheckboxSet extends React.Component {
       rowContents.push(<td key={'left'} rowSpan={this.props.cellDimensions}><span className="leftVerticalText">{this.props.left.replace(/ /g, "\u00a0")}</span></td>);
     }
 
+    //TODO: need to add divs to the table corner cells and hide the cell borders to get rounded corners
     for (let i=0;i<this.props.cellDimensions;i++) {
       var cornerStatus = '';
       if (i===0 && rowIndex===0) {
