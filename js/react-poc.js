@@ -130,8 +130,9 @@ class Chart extends React.Component {
           }
 
           //whether 'you' or 'them', ever MC CB in the set should be filled out
-          if (categoryName in this.categoryMulticolorCheckboxMap) {
-            if (elementName in this.categoryMulticolorCheckboxMap[categoryName]) {
+          if (this.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
+            if (this.capitalize(elementName) in this.categoryMulticolorCheckboxMap[this.capitalize(categoryName)]) {
+              console.log('Reached');
               if (noneElementExists) {
                 missingElements[targetName][categoryName].push(elementName);
                 continue;
@@ -243,7 +244,7 @@ class Chart extends React.Component {
       words[i] = letters.join('');
     }
 
-    return words.join('');
+    return words.join(' ');
   }
 
   hideProcessingErrorWarning() {
