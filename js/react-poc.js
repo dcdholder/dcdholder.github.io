@@ -62,16 +62,12 @@ class Chart extends React.Component {
 
     this.allowDownloadClick = true; //prevent the backend from being POST-spammed through the frontend by download-button mashing
 
-    this.targets = [];
-    var possibleTargets = ["You","Them"];
-    for (var i=0;i<possibleTargets.length;i++) {
-      this.targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve}/>);
-    }
-
     this.state = {
       generateButtonText: 'Download',
       errorMessage: '',
-      errorMessageDisplayMode: 'off'
+      errorMessageDisplayMode: 'off',
+      loadedJson: '',
+      interactionFrozen: false
     };
   }
 
@@ -79,6 +75,26 @@ class Chart extends React.Component {
   static get restServerDomain() { return 'http://Hollerache.pythonanywhere.com/'; }
   static get defaultGenerateButtonText() { return 'Download'; }
   static get generateAnimationTick() {return 1000; }
+
+  loadInJson(json) {
+    this.setState({ loadedJson: json });
+  }
+
+  getLoadedJsonForChild(targetName) {
+    if (targetName.toLowerCase() in this.state.loadedJson) {
+      return this.state.loadedJson[targetName.toLowerCase()];
+    } else {
+      return '';
+    }
+  }
+
+  freezeInteraction() {
+    this.setState({ interactionFrozen: true });
+  }
+
+  unfreezeInteraction() {
+    this.setState({ interactionFrozen: false });
+  }
 
   retrieve(childJson) {
     for (let firstName in childJson) {
@@ -308,10 +324,16 @@ class Chart extends React.Component {
   }
 
   render() {
+    var targets = [];
+    var possibleTargets = ["You","Them"];
+    for (var i=0;i<possibleTargets.length;i++) {
+      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(targetName)} interactionFrozen={this.state.interactionFrozen} />);
+    }
+
     return (
       <div className="chart fillSmallScreen">
         <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
-        {this.targets}
+        {targets}
         <div className="chartFooter">
           <div className="footerButtons">
             <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
@@ -374,6 +396,14 @@ class Target extends React.Component {
     }
   }
 
+  getLoadedJsonForChild(categoryName) {
+    if (categoryName.toLowerCase() in this.props.loadedJson) {
+      return this.props.loadedJson[categoryName.toLowerCase()];
+    } else {
+      return '';
+    }
+  }
+
   retrieve(childJson) {
     for (let firstName in childJson) {
       this.json[this.props.targetName.toLowerCase()][firstName] = childJson[firstName];
@@ -391,7 +421,7 @@ class Target extends React.Component {
 
     var categories = [];
     for (var finalCategoryName in elementMapByCategoryByType) {
-      categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} />);
+      categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(finalCategoryName)} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     return (
@@ -415,6 +445,12 @@ class Category extends React.Component {
     this.json[this.props.categoryName.toLowerCase()] = {};
 
     this.retrieve = this.retrieve.bind(this);
+  }
+
+  getLoadedJsonForChild(elementName) {
+    if (elementName.toLowerCase() in this.props.loadedJson) {
+      return this.props.loadedJson[elementName.toLowerCase()];
+    }
   }
 
   retrieve(childJson) {
@@ -464,26 +500,26 @@ class Category extends React.Component {
     var singleColorYouElements = [];
     for (let numericalSelectBarName in this.props.elementMap['numericalSelectBars']) {
       let properties = this.props.elementMap['numericalSelectBars'][numericalSelectBarName];
-      singleColorYouElements.push(<NumericalSelectBar key={numericalSelectBarName} name={numericalSelectBarName} youOrThem={this.props.targetName} maxPossible={properties.max} minPossible={properties.min} numCells={properties.numCells} retrieve={this.retrieve} />);
+      singleColorYouElements.push(<NumericalSelectBar key={numericalSelectBarName} name={numericalSelectBarName} youOrThem={this.props.targetName} maxPossible={properties.max} minPossible={properties.min} numCells={properties.numCells} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(numericalSelectBarName)} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     for (let singleColorYouCheckboxSetName in this.props.elementMap['singleColorYouCheckboxSets']) {
       let properties = this.props.elementMap['singleColorYouCheckboxSets'][singleColorYouCheckboxSetName];
-      singleColorYouElements.push(<SingleColorYouCheckboxSet key={singleColorYouCheckboxSetName} name={singleColorYouCheckboxSetName} youOrThem={this.props.targetName} possibleOptions={properties} parentIsCategory={true} retrieve={this.retrieve} />);
+      singleColorYouElements.push(<SingleColorYouCheckboxSet key={singleColorYouCheckboxSetName} name={singleColorYouCheckboxSetName} youOrThem={this.props.targetName} possibleOptions={properties} parentIsCategory={true} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYouCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     for (let fuzzySelectBarName in this.props.elementMap['fuzzySelectBars']) {
       let properties = this.props.elementMap['fuzzySelectBars'][fuzzySelectBarName];
-      singleColorYouElements.push(<FuzzySelectBar key={fuzzySelectBarName} name={fuzzySelectBarName} youOrThem={this.props.targetName} numCells={properties.numCells} leftmostOption={properties.left} rightmostOption={properties.right} retrieve={this.retrieve} />);
+      singleColorYouElements.push(<FuzzySelectBar key={fuzzySelectBarName} name={fuzzySelectBarName} youOrThem={this.props.targetName} numCells={properties.numCells} leftmostOption={properties.left} rightmostOption={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(fuzzySelectBarName)} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     for (let booleanSelectBarIndex in this.props.elementMap['booleanSelectBars']) {
-      singleColorYouElements.push(<BooleanSelectBar key={booleanSelectBarIndex} name={this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex]} youOrThem={this.props.targetName} retrieve={this.retrieve} />);
+      singleColorYouElements.push(<BooleanSelectBar key={booleanSelectBarIndex} name={this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex]} youOrThem={this.props.targetName} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex])} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     for (let singleColorYou2DCheckboxSetName in this.props.elementMap['singleColorYou2DCheckboxSets']) {
       let properties = this.props.elementMap['singleColorYou2DCheckboxSets'][singleColorYou2DCheckboxSetName];
-      singleColorYouElements.push(<SingleColorYou2DCheckboxSet key={singleColorYou2DCheckboxSetName} name={singleColorYou2DCheckboxSetName} youOrThem={this.props.targetName} cellDimensions={properties.cellDimensions} top={properties.top} bottom={properties.bottom} left={properties.left} right={properties.right} retrieve={this.retrieve} />);
+      singleColorYouElements.push(<SingleColorYou2DCheckboxSet key={singleColorYou2DCheckboxSetName} name={singleColorYou2DCheckboxSetName} youOrThem={this.props.targetName} cellDimensions={properties.cellDimensions} top={properties.top} bottom={properties.bottom} left={properties.left} right={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYou2DCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     var wrappedSingleColorYouElements = Category.fillGrid(singleColorYouElements);
@@ -491,7 +527,7 @@ class Category extends React.Component {
     var multicolorYouElements = [];
     for (let multicolorCheckboxSetName in this.props.elementMap['multicolorCheckboxSets']) {
       let labels = this.props.elementMap['multicolorCheckboxSets'][multicolorCheckboxSetName];
-      multicolorYouElements.push(<MulticolorCheckboxSet key={multicolorCheckboxSetName} targetName={this.props.targetName} categoryName={this.props.categoryName} name={multicolorCheckboxSetName} labels={labels} retrieve={this.retrieve} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
+      multicolorYouElements.push(<MulticolorCheckboxSet key={multicolorCheckboxSetName} targetName={this.props.targetName} categoryName={this.props.categoryName} name={multicolorCheckboxSetName} labels={labels} retrieve={this.retrieve}  loadedJson={this.getLoadedJsonForChild(multicolorCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
     }
 
     return (
@@ -516,15 +552,20 @@ class MulticolorCheckboxSet extends React.Component {
     this.json[this.props.name.toLowerCase()] = {};
 
     this.retrieve = this.retrieve.bind(this);
-
-    this.checkboxes     = this.getCheckboxes();
-    this.gridCheckboxes = Category.fillGrid(this.checkboxes);
   }
 
   static get numColsXSmall() {return 1;}
   static get numColsSmall()  {return 3;}
   static get numColsMedium() {return 4;}
   static get numColsLarge()  {return 6;}
+
+  getLoadedJsonForChild(checkboxName) {
+    if (checkboxName.toLowerCase() in this.props.loadedJson) {
+      return this.props.loadedJson[checkboxName.toLowerCase()];
+    } else {
+      return '';
+    }
+  }
 
   retrieve(childJson) {
     for (let firstLabel in childJson) {
@@ -538,13 +579,16 @@ class MulticolorCheckboxSet extends React.Component {
 
     var checkboxes = [];
     for (var i=0; i<this.props.labels.length; i++) {
-      checkboxes.push(<MulticolorCheckbox key={this.props.labels[i]} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.labels[i]} pickOneIfYou={false} retrieve={this.retrieve} />);
+      checkboxes.push(<MulticolorCheckbox key={this.props.labels[i]} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.labels[i]} pickOneIfYou={false} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.labels[i])} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     return checkboxes;
   }
 
   render() {
+    var checkboxes     = this.getCheckboxes();
+    var gridCheckboxes = Category.fillGrid(checkboxes);
+
     return (
       <div className="multicolorCheckboxSet">
         <ReactBootstrap.Grid fluid={true}>
@@ -554,7 +598,7 @@ class MulticolorCheckboxSet extends React.Component {
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
-        {this.gridCheckboxes}
+        {gridCheckboxes}
       </div>
     );
   }
@@ -615,12 +659,22 @@ class MulticolorCheckbox extends React.Component {
   }
 
   makeSelection(index) {
-    var childColorsTmp = []; //reset the other checkbox choices' colors, and change the color of the new selection
-    for (var i=0;i<this.state.childColors.length;i++) {
-      childColorsTmp[i] = MulticolorCheckbox.colorNames(i);
+    if (!this.props.interactionFrozen) {
+      var childColorsTmp = []; //reset the other checkbox choices' colors, and change the color of the new selection
+      for (var i=0;i<this.state.childColors.length;i++) {
+        childColorsTmp[i] = MulticolorCheckbox.colorNames(i);
+      }
+      childColorsTmp[index] = 'black';
+      this.setState( {footer: this.state.footerInitial + ' ' + this.state.descriptors[index].toLowerCase() + '.', childColors: childColorsTmp} );
     }
-    childColorsTmp[index] = 'black';
-    this.setState( {footer: this.state.footerInitial + ' ' + this.state.descriptors[index].toLowerCase() + '.', childColors: childColorsTmp} );
+  }
+
+  getCheckboxChoiceColor(index) {
+    if (this.props.loadedJson==='none' || this.props.loadedJson==='') {
+      return MulticolorCheckbox.colorNames(index);
+    } else {
+      return MulticolorCheckbox.colorNames(this.loadedJson);
+    }
   }
 
   render() {
@@ -642,7 +696,7 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} />);
+      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} loadedJson={this.props.loadedJson[i]} />);
     }
 
     //TODO: the extra line breaks here are a hideous kludge
