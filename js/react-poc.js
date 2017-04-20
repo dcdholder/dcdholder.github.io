@@ -530,10 +530,12 @@ class Category extends React.Component {
       this.categoryDetailsManipulable = false;
       this.detailsOpen                = false;
 
-      //TODO: VERY ugly hack, but react refuses to close details tags otherwise
+      //TODO: VERY ugly hack PLS FIX. React refuses to close details tags otherwise.
       var details = Array.from(document.querySelectorAll("details"));
-      for (let onlyDetailIndex in details) {
-        details[onlyDetailIndex].removeAttribute("open");
+      for (let detailIndex in details) {
+        if (details[detailIndex].name==this.props.categoryName.toLowerCase()) {
+          details[onlyDetailIndex].removeAttribute("open");
+        }
       }
     } else {
       this.categoryDetailsManipulable = true;
@@ -588,7 +590,7 @@ class Category extends React.Component {
     );
 
     return (
-      <details className="category" open={this.detailsOpen} onClick={(event) => {this.handleCategoryDetailsOpen(event);}}>
+      <details className="category" open={this.detailsOpen} onClick={(event) => {this.handleCategoryDetailsOpen(event);}} name={this.props.categoryName.toLowerCase()} >
         {nameContents}
         {bodyContents}
       </details>
