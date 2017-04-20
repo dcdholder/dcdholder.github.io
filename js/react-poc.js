@@ -795,7 +795,7 @@ class MulticolorCheckbox extends React.Component {
     //TODO: the extra line breaks here are a hideous kludge
     var contents = (
       <div className="multicolorCheckbox">
-        <ElementName name={this.props.label} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
+        <ElementName name={this.props.label} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"undo"} />
         {choices}
         <span className="multicolorCheckboxFooter" style={{display: footerDisplayStyle}}>{this.state.footer}</span>
       </div>
@@ -970,7 +970,7 @@ class ElementName extends React.Component {
     return (
       <div>
         <label className="elementName"><span><b>{this.props.name + ':'}</b></span></label>
-        <ResetButton reset={this.props.reset} interactionFrozen={this.props.interactionFrozen} />
+        <ResetButton resetType={this.props.resetType} reset={this.props.reset} interactionFrozen={this.props.interactionFrozen} />
       </div>
     );
   }
@@ -984,8 +984,20 @@ class ResetButton extends React.Component {
       displayStyle = 'none';
     }
 
+    //TODO: resetButton currently uses a bomb as its icon for 'full resets'-- will probably switch to something else
+    //the standard undo symbol doesn't really fit the concept of the 'full reset', which can be interpreted as multiple undo actions
+    var title;
+    var iconCharacter;
+    if (this.props.resetType=="undo") {
+      title         = "Reset";
+      iconCharacter = '⟲';
+    } else if (this.props.resetType=="reset") {
+      title         = "Complete Reset";
+      iconCharacter = '💣';
+    }
+
     return (
-      <button type="button" name="reset" className="resetButton" style={{display: displayStyle}} onClick={() => {this.props.reset()}}>💣</button>
+      <button type="button" name="reset" className="resetButton" style={{display: displayStyle}} onClick={() => {this.props.reset()}} title={title}>{iconCharacter}</button>
     );
   }
 }
@@ -1166,7 +1178,7 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     if (this.props.youOrThem.toLowerCase()=='you') {
       contents = (
         <div className="multicolorCheckbox">
-          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
+          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"undo"} />
           <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
@@ -1178,7 +1190,7 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     } else {
       contents = (
         <div className="multicolorCheckbox">
-          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
+          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"reset"} />
           <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
@@ -1291,8 +1303,15 @@ class SingleColorYouCheckboxSet extends React.Component {
       }
     }
 
+    var resetType;
+    if (this.props.youOrThem.toLowerCase()=="you") {
+      resetType = "undo";
+    } else {
+      resetType = "reset";
+    }
+
     var commonHtml = [];
-    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />);
+    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={resetType} />);
     commonHtml.push(<CheckboxSelectBox key={'select-box'} possibleOptions={this.props.possibleOptions} colors={this.state.optionColors} onClick={this.getActiveColor} interactionFrozen={this.props.interactionFrozen} />);
     commonHtml.push(<SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />);
 
