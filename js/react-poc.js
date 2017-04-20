@@ -685,20 +685,22 @@ class MulticolorCheckbox extends React.Component {
     super(props);
 
     this.makeSelection = this.makeSelection.bind(this); //ensure callbacks have the proper context
+    this.reset         = this.reset.bind(this);
 
     var descriptors = [];
     var footerInitial;
     var footer;
     if ((this.props.targetName.toLowerCase()=='you' && !this.props.pickOneIfYou) || this.props.targetName.toLowerCase()=='them') {
       if (this.props.targetName.toLowerCase()=='you') { //present all colors except pink
+        this.defaultFooter = 'How well does this describe you?';
         descriptors   = MulticolorCheckbox.youMulticolorLabels;
         footerInitial = 'This describes me';
-        footer        = 'How well does this describe you?';
       } else { //present all colors including pink
+        this.defaultFooter = 'How important is this in others?';
         descriptors   = MulticolorCheckbox.themMulticolorLabels;
         footerInitial = 'I consider this';
-        footer        = 'How important is this in others?';
       }
+      footer = this.defaultFooter;
     } else {
       throw "Multicolor checkboxes cannot be \'pick one\'.";
     }
@@ -737,6 +739,16 @@ class MulticolorCheckbox extends React.Component {
       }
       childColorsTmp[index] = 'black';
       this.setState( {footer: this.state.footerInitial + ' ' + this.state.descriptors[index].toLowerCase() + '.', childColors: childColorsTmp} );
+    }
+  }
+
+  reset() {
+    if (!this.props.interactionFroze) {
+      var childColorsTmp = [];
+      for (var i=0;i<this.state.childColors.length;i++) {
+        childColorsTmp[i] = MulticolorCheckbox.colorNames(i);
+      }
+      this.setState( {footer: this.defaultFooter, childColors: childColorsTmp});
     }
   }
 
@@ -783,8 +795,7 @@ class MulticolorCheckbox extends React.Component {
     //TODO: the extra line breaks here are a hideous kludge
     var contents = (
       <div className="multicolorCheckbox">
-        <label className="multicolorCheckboxLabel"><span><b>{this.props.label + ':'}</b></span></label>
-        <br />
+        <ElementName name={this.props.label} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
         {choices}
         <span className="multicolorCheckboxFooter" style={{display: footerDisplayStyle}}>{this.state.footer}</span>
       </div>
@@ -953,11 +964,28 @@ class SingleColorYouControlsText extends React.Component {
   }
 }
 
-//props: name
+//props: name, interactionFrozen, reset (callback)
 class ElementName extends React.Component {
   render() {
     return (
-      <label className="elementName"><span><b>{this.props.name + ':'}</b></span></label>
+      <div>
+        <label className="elementName"><span><b>{this.props.name + ':'}</b></span></label>
+        <ResetButton reset={this.props.reset} interactionFrozen={this.props.interactionFrozen} />
+      </div>
+    );
+  }
+}
+
+//props: interactionFrozen, reset (callback)
+class ResetButton extends React.Component {
+  render() {
+    var displayStyle = 'inline-block';
+    if (this.props.interactionFrozen) {
+      displayStyle = 'none';
+    }
+
+    return (
+      <button type="button" name="reset" className="resetButton" style={{display: displayStyle}} onClick={() => {this.props.reset()}}>💣</button>
     );
   }
 }
@@ -969,6 +997,8 @@ class SingleColorYou2DCheckboxSet extends React.Component {
 
     this.setActiveColor = this.setActiveColor.bind(this);
     this.getActiveColor = this.getActiveColor.bind(this);
+
+    this.reset = this.reset.bind(this);
 
     if (this.props.youOrThem.toLowerCase()=="you") {
       this.activeColor = 'green';
@@ -1026,6 +1056,19 @@ class SingleColorYou2DCheckboxSet extends React.Component {
       } else {
         newOptionColors = this.state.optionColors;
         newOptionColors[rowIndex][colIndex] = this.activeColor;
+      }
+      this.setState({optionColors: newOptionColors});
+    }
+  }
+
+  reset() {
+    if (!this.props.interactionFrozen) {
+      var newOptionColors = [];
+      for (let j=0; j<this.props.cellDimensions; j++) {
+        newOptionColors[j] = [];
+        for (let i=0; i<this.props.cellDimensions; i++) {
+          newOptionColors[j][i] = 'white';
+        }
       }
       this.setState({optionColors: newOptionColors});
     }
@@ -1123,7 +1166,7 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     if (this.props.youOrThem.toLowerCase()=='you') {
       contents = (
         <div className="multicolorCheckbox">
-          <ElementName key={this.props.name + '-name'} name={this.props.name} />
+          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
           <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
@@ -1135,7 +1178,7 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     } else {
       contents = (
         <div className="multicolorCheckbox">
-          <ElementName key={this.props.name + '-name'} name={this.props.name} />
+          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />
           <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
@@ -1158,6 +1201,8 @@ class SingleColorYouCheckboxSet extends React.Component {
 
     this.setActiveColor = this.setActiveColor.bind(this);
     this.getActiveColor = this.getActiveColor.bind(this);
+
+    this.reset = this.reset.bind(this);
 
     if (this.props.youOrThem.toLowerCase()=="you") {
       this.activeColor = 'green';
@@ -1219,6 +1264,14 @@ class SingleColorYouCheckboxSet extends React.Component {
     }
   }
 
+  reset() {
+    var newOptionColors = [];
+    for (let i=0; i<this.optionColors.length; i++) {
+      newOptionColors[i] = 'white';
+    }
+    this.setState({optionColors: newOptionColors});
+  }
+
   render() {
     if (this.props.parentIsCategory) {
       this.props.retrieve(this.toDictJson()); //update parent with every state change
@@ -1239,7 +1292,7 @@ class SingleColorYouCheckboxSet extends React.Component {
     }
 
     var commonHtml = [];
-    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} />);
+    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} />);
     commonHtml.push(<CheckboxSelectBox key={'select-box'} possibleOptions={this.props.possibleOptions} colors={this.state.optionColors} onClick={this.getActiveColor} interactionFrozen={this.props.interactionFrozen} />);
     commonHtml.push(<SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />);
 
