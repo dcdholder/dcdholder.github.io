@@ -66,8 +66,9 @@ class Chart extends React.Component {
       generateButtonText: 'Download',
       errorMessage: '',
       errorMessageDisplayMode: 'off',
-      loadedJson: '',
-      interactionFrozen: false
+      loadedJson: {},
+      interactionFrozen: false,
+      emptyElementsHidden: false
     };
   }
 
@@ -84,7 +85,7 @@ class Chart extends React.Component {
     if (targetName.toLowerCase() in this.state.loadedJson) {
       return this.state.loadedJson[targetName.toLowerCase()];
     } else {
-      return '';
+      return {};
     }
   }
 
@@ -148,7 +149,6 @@ class Chart extends React.Component {
           //whether 'you' or 'them', ever MC CB in the set should be filled out
           if (this.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
             if (this.capitalize(elementName) in this.categoryMulticolorCheckboxMap[this.capitalize(categoryName)]) {
-              console.log('Reached');
               if (noneElementExists) {
                 missingElements[targetName][categoryName].push(elementName);
                 continue;
@@ -326,8 +326,8 @@ class Chart extends React.Component {
   render() {
     var targets = [];
     var possibleTargets = ["You","Them"];
-    for (var i=0;i<possibleTargets.length;i++) {
-      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(targetName)} interactionFrozen={this.state.interactionFrozen} />);
+    for (let i=0;i<possibleTargets.length;i++) {
+      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
     }
 
     return (
@@ -337,6 +337,8 @@ class Chart extends React.Component {
         <div className="chartFooter">
           <div className="footerButtons">
             <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
+            <button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>
+            <button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>
           </div>
           <div className={'errorMessage ' + this.state.errorMessageDisplayMode}>{this.state.errorMessage}</div>
         </div>
@@ -400,7 +402,7 @@ class Target extends React.Component {
     if (categoryName.toLowerCase() in this.props.loadedJson) {
       return this.props.loadedJson[categoryName.toLowerCase()];
     } else {
-      return '';
+      return {};
     }
   }
 
@@ -421,7 +423,7 @@ class Target extends React.Component {
 
     var categories = [];
     for (var finalCategoryName in elementMapByCategoryByType) {
-      categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(finalCategoryName)} interactionFrozen={this.props.interactionFrozen} />);
+      categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(finalCategoryName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     return (
@@ -445,11 +447,17 @@ class Category extends React.Component {
     this.json[this.props.categoryName.toLowerCase()] = {};
 
     this.retrieve = this.retrieve.bind(this);
+
+
+    this.detailsOpen                = true;
+    this.categoryDetailsManipulable = true;
   }
 
   getLoadedJsonForChild(elementName) {
     if (elementName.toLowerCase() in this.props.loadedJson) {
       return this.props.loadedJson[elementName.toLowerCase()];
+    } else {
+      return [];
     }
   }
 
@@ -473,53 +481,89 @@ class Category extends React.Component {
   }
 
   static fillRow(rowElements) {
-    var cols = [];
-    for(var i=0;i<rowElements.length;i++) {
-      cols.push(this.fillColumn(rowElements[i],i));
-    }
-
     return (
       <ReactBootstrap.Row>
-        {cols}
+        {rowElements}
       </ReactBootstrap.Row>
     );
   }
 
-  static fillColumn(element,i) {
+  static fillColumn(element,identifier,hidden) {
+    var displayStyle = 'inline-block';
+    if (hidden) {
+      displayStyle = 'none';
+    }
+
     if (typeof element!==undefined) { //TODO: figure out if this is necessary
       return (
-        <div key={'element-' + i} className="col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+        <div key={'element-' + identifier} className="col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2" style={{display: displayStyle}}>
           {element}
         </div>
       );
     }
   }
 
+  nothingSelected() { //returns true immediately on page load
+    for (let categoryName in this.json) {
+      for (let elementName in this.json[categoryName]) {
+        for (let subelementName in this.json[categoryName][elementName]) {
+          if (this.json[categoryName][elementName][subelementName]!='none') {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  handleCategoryDetailsOpen(event) {
+    if (this.categoryDetailsManipulable) {
+      return true;
+    } else {
+      event.preventDefault();
+    }
+  }
+
   render() {
+    if (this.props.emptyElementsHidden && this.nothingSelected()) {
+      this.categoryDetailsManipulable = false;
+      this.detailsOpen                = false;
+
+      //TODO: VERY ugly hack, but react refuses to close details tags otherwise
+      var details = Array.from(document.querySelectorAll("details"));
+      for (let onlyDetailIndex in details) {
+        details[onlyDetailIndex].removeAttribute("open");
+      }
+    } else {
+      this.categoryDetailsManipulable = true;
+      this.detailsOpen = this.detailsPreviouslyOpen
+    }
+
     //TODO: Really ugly and verbose. See if there's not a way to fix this.
     var singleColorYouElements = [];
     for (let numericalSelectBarName in this.props.elementMap['numericalSelectBars']) {
       let properties = this.props.elementMap['numericalSelectBars'][numericalSelectBarName];
-      singleColorYouElements.push(<NumericalSelectBar key={numericalSelectBarName} name={numericalSelectBarName} youOrThem={this.props.targetName} maxPossible={properties.max} minPossible={properties.min} numCells={properties.numCells} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(numericalSelectBarName)} interactionFrozen={this.props.interactionFrozen} />);
+      singleColorYouElements.push(<NumericalSelectBar key={numericalSelectBarName} name={numericalSelectBarName} youOrThem={this.props.targetName} maxPossible={properties.max} minPossible={properties.min} numCells={properties.numCells} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(numericalSelectBarName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     for (let singleColorYouCheckboxSetName in this.props.elementMap['singleColorYouCheckboxSets']) {
       let properties = this.props.elementMap['singleColorYouCheckboxSets'][singleColorYouCheckboxSetName];
-      singleColorYouElements.push(<SingleColorYouCheckboxSet key={singleColorYouCheckboxSetName} name={singleColorYouCheckboxSetName} youOrThem={this.props.targetName} possibleOptions={properties} parentIsCategory={true} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYouCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />);
+      singleColorYouElements.push(<SingleColorYouCheckboxSet key={singleColorYouCheckboxSetName} name={singleColorYouCheckboxSetName} youOrThem={this.props.targetName} possibleOptions={properties} parentIsCategory={true} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYouCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     for (let fuzzySelectBarName in this.props.elementMap['fuzzySelectBars']) {
       let properties = this.props.elementMap['fuzzySelectBars'][fuzzySelectBarName];
-      singleColorYouElements.push(<FuzzySelectBar key={fuzzySelectBarName} name={fuzzySelectBarName} youOrThem={this.props.targetName} numCells={properties.numCells} leftmostOption={properties.left} rightmostOption={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(fuzzySelectBarName)} interactionFrozen={this.props.interactionFrozen} />);
+      singleColorYouElements.push(<FuzzySelectBar key={fuzzySelectBarName} name={fuzzySelectBarName} youOrThem={this.props.targetName} numCells={properties.numCells} leftmostOption={properties.left} rightmostOption={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(fuzzySelectBarName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     for (let booleanSelectBarIndex in this.props.elementMap['booleanSelectBars']) {
-      singleColorYouElements.push(<BooleanSelectBar key={booleanSelectBarIndex} name={this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex]} youOrThem={this.props.targetName} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex])} interactionFrozen={this.props.interactionFrozen} />);
+      singleColorYouElements.push(<BooleanSelectBar key={booleanSelectBarIndex} name={this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex]} youOrThem={this.props.targetName} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.elementMap['booleanSelectBars'][booleanSelectBarIndex])} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     for (let singleColorYou2DCheckboxSetName in this.props.elementMap['singleColorYou2DCheckboxSets']) {
       let properties = this.props.elementMap['singleColorYou2DCheckboxSets'][singleColorYou2DCheckboxSetName];
-      singleColorYouElements.push(<SingleColorYou2DCheckboxSet key={singleColorYou2DCheckboxSetName} name={singleColorYou2DCheckboxSetName} youOrThem={this.props.targetName} cellDimensions={properties.cellDimensions} top={properties.top} bottom={properties.bottom} left={properties.left} right={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYou2DCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />);
+      singleColorYouElements.push(<SingleColorYou2DCheckboxSet key={singleColorYou2DCheckboxSetName} name={singleColorYou2DCheckboxSetName} youOrThem={this.props.targetName} cellDimensions={properties.cellDimensions} top={properties.top} bottom={properties.bottom} left={properties.left} right={properties.right} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(singleColorYou2DCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden}  />);
     }
 
     var wrappedSingleColorYouElements = Category.fillGrid(singleColorYouElements);
@@ -527,18 +571,26 @@ class Category extends React.Component {
     var multicolorYouElements = [];
     for (let multicolorCheckboxSetName in this.props.elementMap['multicolorCheckboxSets']) {
       let labels = this.props.elementMap['multicolorCheckboxSets'][multicolorCheckboxSetName];
-      multicolorYouElements.push(<MulticolorCheckboxSet key={multicolorCheckboxSetName} targetName={this.props.targetName} categoryName={this.props.categoryName} name={multicolorCheckboxSetName} labels={labels} retrieve={this.retrieve}  loadedJson={this.getLoadedJsonForChild(multicolorCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
+      multicolorYouElements.push(<MulticolorCheckboxSet key={multicolorCheckboxSetName} targetName={this.props.targetName} categoryName={this.props.categoryName} name={multicolorCheckboxSetName} labels={labels} retrieve={this.retrieve}  loadedJson={this.getLoadedJsonForChild(multicolorCheckboxSetName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />); //TODO: change this when MulticolorCheckboxSet becomes an Element subclass
     }
 
-    return (
-      <details className="category" open>
+    var nameContents = (
         <summary className="categoryName">
           {this.props.categoryName}
         </summary>
+    );
+
+    var bodyContents = (
         <div className="categoryBody">
           {wrappedSingleColorYouElements}
           {multicolorYouElements}
         </div>
+    );
+
+    return (
+      <details className="category" open={this.detailsOpen} onClick={(event) => {this.handleCategoryDetailsOpen(event);}}>
+        {nameContents}
+        {bodyContents}
       </details>
     );
   }
@@ -574,12 +626,24 @@ class MulticolorCheckboxSet extends React.Component {
     this.props.retrieve(this.json);
   }
 
+  nothingSelected() { //returns true immediately on page load
+    for (let setName in this.json) {
+      for (let checkboxName in this.json[setName]) {
+        if (this.json[setName][checkboxName]!='none') {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   getCheckboxes() {
     this.props.labels.sort();
 
     var checkboxes = [];
     for (var i=0; i<this.props.labels.length; i++) {
-      checkboxes.push(<MulticolorCheckbox key={this.props.labels[i]} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.labels[i]} pickOneIfYou={false} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.labels[i])} interactionFrozen={this.props.interactionFrozen} />);
+      checkboxes.push(<MulticolorCheckbox key={this.props.labels[i]} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.labels[i]} pickOneIfYou={false} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(this.props.labels[i])} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     return checkboxes;
@@ -589,12 +653,17 @@ class MulticolorCheckboxSet extends React.Component {
     var checkboxes     = this.getCheckboxes();
     var gridCheckboxes = Category.fillGrid(checkboxes);
 
+    var displayStyle = 'block';
+    if (this.props.emptyElementsHidden && this.nothingSelected()) {
+      displayStyle = 'none';
+    }
+
     return (
       <div className="multicolorCheckboxSet">
         <ReactBootstrap.Grid fluid={true}>
           <ReactBootstrap.Row>
             <ReactBootstrap.Col lg={12}>
-              <label className="multicolorCheckboxSetName">{this.props.name}</label>
+              <label className="multicolorCheckboxSetName" style={{display: displayStyle}}>{this.props.name}</label>
             </ReactBootstrap.Col>
           </ReactBootstrap.Row>
         </ReactBootstrap.Grid>
@@ -673,12 +742,22 @@ class MulticolorCheckbox extends React.Component {
     if (this.props.loadedJson==='none' || this.props.loadedJson==='') {
       return MulticolorCheckbox.colorNames(index);
     } else {
-      return MulticolorCheckbox.colorNames(this.loadedJson);
+      return MulticolorCheckbox.colorNames(this.props.loadedJson);
     }
   }
 
   render() {
     this.props.retrieve(this.toJson());
+
+    var hidden = false;
+    if (this.props.emptyElementsHidden && this.toJson()[Object.keys(this.toJson())[0]]=='none') {
+      hidden = true;
+    }
+
+    var footerDisplayStyle = 'block';
+    if (this.props.interactionFrozen && this.toJson()[Object.keys(this.toJson())[0]]=='none') { //retain flavor text if a selection has been made
+      footerDisplayStyle = 'none';
+    }
 
     var choices = [];
     var percentWidth = 100 / this.state.descriptors.length;
@@ -696,30 +775,38 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} loadedJson={this.props.loadedJson[i]} />);
+      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} hoverText={this.state.descriptors[i]}  loadedJson={this.props.loadedJson[i]} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     //TODO: the extra line breaks here are a hideous kludge
-    return (
+    var contents = (
       <div className="multicolorCheckbox">
         <label className="multicolorCheckboxLabel"><span><b>{this.props.label + ':'}</b></span></label>
         <br />
         {choices}
-        <span className="multicolorCheckboxFooter">{this.state.footer}</span>
+        <span className="multicolorCheckboxFooter" style={{display: footerDisplayStyle}}>{this.state.footer}</span>
       </div>
+    );
+
+    return (
+      Category.fillColumn(contents,this.props.label,hidden)
     );
   }
 }
 
 class CheckboxChoice extends React.Component {
   render() {
+    var extraClasses = 'hoverable';
+    if (this.props.interactionFrozen) {
+      extraClasses = 'notHoverable';
+    }
+
     return ( //TODO: figure out how to add multiple optional classes
-      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side} style={{width: this.props.percentWidth + "%"}}><input type="radio" name={this.props.categoryName.toLowerCase() + '-' + this.props.name.toLowerCase() + '-' + this.props.targetName.toLowerCase() + '-' + this.props.label.toLowerCase()} value={this.props.value} onClick={() => this.props.onClick(this.props.value)} /><span>{this.props.text}</span></label>
+      <label className={'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side + ' ' + extraClasses} style={{width: this.props.percentWidth + "%"}} title={this.props.hoverText}><input type="radio" value={this.props.value} onClick={() => this.props.onClick(this.props.value)} /><span>{this.props.text}</span></label>
     );
   }
 }
 
-//TODO: NEW STUFF BEGINS HERE
 //props: color, position, text
 class ColorSelectChoice extends React.Component {
   render() {
@@ -729,7 +816,7 @@ class ColorSelectChoice extends React.Component {
     }
 
     return (
-      <label className={'colorSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + activeBorder}><input type='radio' onClick={() => {this.props.onClick[0](this.props.color); this.props.onClick[1](this.props.color);}} /><span>{this.props.text}</span></label>
+      <label className={'colorSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + activeBorder} title={this.props.hoverText}><input type='radio' onClick={() => {this.props.onClick[0](this.props.color); this.props.onClick[1](this.props.color);}} /><span>{this.props.text}</span></label>
     );
   }
 }
@@ -737,6 +824,7 @@ class ColorSelectChoice extends React.Component {
 //props: onClick
 class ColorSelectBar extends React.Component {
   static get colors() {return ['red','orange','yellow','green','blue','pink'];}
+  static get themLabels() {return ['Awful', 'Bad', 'Acceptable', 'Good', 'Very Good', 'Perfect'];}
 
   static scoreFromColor(color) {
     for (let i=0;i<ColorSelectBar.colors.length;i++) {
@@ -759,10 +847,17 @@ class ColorSelectBar extends React.Component {
   }
 
   frameColorSelection(color) {
-    this.setState({selectedColor: color});
+    if (!this.props.interactionFrozen) {
+      this.setState({selectedColor: color});
+    }
   }
 
   render() {
+    var displayStyle = 'block';
+    if (this.props.interactionFrozen) {
+      displayStyle = 'none';
+    }
+
     var hasActiveBorder;
     var colorSelectChoices = [];
     for (var i=0;i<ColorSelectBar.colors.length;i++) {
@@ -786,11 +881,11 @@ class ColorSelectBar extends React.Component {
         hasActiveBorder = false;
       }
 
-      colorSelectChoices.push(<ColorSelectChoice key={ColorSelectBar.colors[i]} color={ColorSelectBar.colors[i]} activeBorder={hasActiveBorder} position={position} text={text} onClick={[this.props.onClick, this.frameColorSelection]} />);
+      colorSelectChoices.push(<ColorSelectChoice key={ColorSelectBar.colors[i]} color={ColorSelectBar.colors[i]} activeBorder={hasActiveBorder} position={position} text={text} hoverText={ColorSelectBar.themLabels[i]} onClick={[this.props.onClick, this.frameColorSelection]} />);
     }
 
     return (
-      <div className="colorSelectBox">
+      <div className="colorSelectBox" style={{display: displayStyle}}>
         {colorSelectChoices}
       </div>
     );
@@ -800,8 +895,13 @@ class ColorSelectBar extends React.Component {
 //props: label, color, position, onClick, index
 class CheckboxSelectChoice extends React.Component {
   render() {
+    var extraClasses = 'hoverable';
+    if (this.props.interactionFrozen) {
+      extraClasses = 'notHoverable';
+    }
+
     return (
-      <div className={'checkboxSelectChoice ' + this.props.color + ' ' + this.props.position} onClick={() => this.props.onClick(this.props.index)}><span>{this.props.label}</span></div>
+      <div className={'checkboxSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + extraClasses} onClick={() => this.props.onClick(this.props.index)}><span>{this.props.label}</span></div>
     );
   }
 }
@@ -820,7 +920,7 @@ class CheckboxSelectBox extends React.Component {
         position = 'middle';
       }
 
-      selectChoices.push(<CheckboxSelectChoice key={this.props.possibleOptions[i]} label={this.props.possibleOptions[i]} color={this.props.colors[i]} position={position} index={i} onClick={this.props.onClick} />);
+      selectChoices.push(<CheckboxSelectChoice key={this.props.possibleOptions[i]} label={this.props.possibleOptions[i]} color={this.props.colors[i]} position={position} index={i} onClick={this.props.onClick} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     return (
@@ -834,13 +934,18 @@ class CheckboxSelectBox extends React.Component {
 //props: youOrThem
 class SingleColorYouControlsText extends React.Component {
   render() {
+    var displayStyle = 'block';
+    if (this.props.isHidden) {
+      displayStyle = 'none';
+    }
+
     if (this.props.youOrThem.toLowerCase()=="you") {
       return (
-        <div className="controlText"><span className="middleControlText">Choose one ↑</span><br /></div>
+        <div className="controlText" style={{display: displayStyle}}><span className="middleControlText">Choose one ↑</span><br /></div>
       );
     } else {
       return (
-        <div className="controlText"><span className="leftControlText">↓ Pick</span><span className="rightControlText">Click ↑</span><br /></div>
+        <div className="controlText" style={{display: displayStyle}}><span className="leftControlText">↓ Pick</span><span className="rightControlText">Click ↑</span><br /></div>
       );
     }
   }
@@ -901,35 +1006,38 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     this.activeColor = color;
   }
 
+  //TODO: 'getActiveColor' is a bit of a misnomer, since this function also paints cells
   getActiveColor(colIndex, rowIndex) {
-    var newOptionColors = [];
-    if (this.props.youOrThem.toLowerCase()=="you") {
-      for(let j=0; j<this.props.cellDimensions; j++) {
-        newOptionColors[j] = [];
-        for(let i=0; i<this.props.cellDimensions; i++) {
-          if (i==colIndex && j==rowIndex) {
-            newOptionColors[j][i] = 'green';
-          } else {
-            newOptionColors[j][i] = 'white';
+    if (!this.props.interactionFrozen) {
+      var newOptionColors = [];
+      if (this.props.youOrThem.toLowerCase()=="you") {
+        for(let j=0; j<this.props.cellDimensions; j++) {
+          newOptionColors[j] = [];
+          for(let i=0; i<this.props.cellDimensions; i++) {
+            if (i==colIndex && j==rowIndex) {
+              newOptionColors[j][i] = 'green';
+            } else {
+              newOptionColors[j][i] = 'white';
+            }
           }
         }
+      } else {
+        newOptionColors = this.state.optionColors;
+        newOptionColors[rowIndex][colIndex] = this.activeColor;
       }
-    } else {
-      newOptionColors = this.state.optionColors;
-      newOptionColors[rowIndex][colIndex] = this.activeColor;
+      this.setState({optionColors: newOptionColors});
     }
-    this.setState({optionColors: newOptionColors});
   }
 
-  fillTableRow(rowIndex) {
+  fillTableRow(rowIndex,hoverability) {
     return (
       <tr key={rowIndex}>
-        {this.fillTableCols(rowIndex)}
+        {this.fillTableCols(rowIndex,hoverability)}
       </tr>
     );
   }
 
-  fillTableCols(rowIndex) {
+  fillTableCols(rowIndex,hoverability) {
     var rowContents = [];
 
     if (rowIndex===0) {
@@ -949,7 +1057,12 @@ class SingleColorYou2DCheckboxSet extends React.Component {
         cornerStatus = 'bottomRight';
       }
 
-      rowContents.push(<td key={i} className={"visibleBorder " + this.state.optionColors[rowIndex][i] + ' ' + cornerStatus} onClick={() => this.getActiveColor(i,rowIndex)}>&nbsp;</td>);
+      rowContents.push(
+        <td key={i}>
+          <div className={"visibleBorder " + this.state.optionColors[rowIndex][i] + ' ' + cornerStatus + ' ' + hoverability} onClick={() => this.getActiveColor(i,rowIndex)}>
+            &nbsp;
+          </div>
+        </td>);
     }
 
     if (rowIndex===0) {
@@ -961,6 +1074,23 @@ class SingleColorYou2DCheckboxSet extends React.Component {
 
   render() {
     this.props.retrieve(this.toJson());
+
+    var hidden = false;
+    if (this.props.emptyElementsHidden) {
+      var json = this.toJson()[this.props.name.toLowerCase()];
+      hidden = true;
+      for (let index in json) {
+        if (json[index]!='none') {
+          hidden = false;
+          break;
+        }
+      }
+    }
+
+    var hoverability = 'hoverable';
+    if (this.props.interactionFrozen) {
+      hoverability = 'notHoverable';
+    }
 
     var tableContentsHtml = [];
 
@@ -982,37 +1112,40 @@ class SingleColorYou2DCheckboxSet extends React.Component {
 
     tableContentsHtml.push(htmlContentsPrefix);
     for (let i=0;i<this.props.cellDimensions;i++) {
-      tableContentsHtml.push(this.fillTableRow(i));
+      tableContentsHtml.push(this.fillTableRow(i,hoverability));
     }
     tableContentsHtml.push(htmlContentsPostfix);
 
     //TODO: DRY
+    var contents;
     if (this.props.youOrThem.toLowerCase()=='you') {
-      return (
+      contents = (
         <div className="multicolorCheckbox">
           <ElementName key={this.props.name + '-name'} name={this.props.name} />
-          <table>
+          <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
             </tbody>
           </table>
-          <SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} />
+          <SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />
         </div>
       );
     } else {
-      return (
+      contents = (
         <div className="multicolorCheckbox">
           <ElementName key={this.props.name + '-name'} name={this.props.name} />
-          <table>
+          <table className="twoDCheckbox">
             <tbody>
               {tableContentsHtml}
             </tbody>
           </table>
-          <SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} />
-          <ColorSelectBar key={'color-select-bar'} onClick={this.setActiveColor} />
+          <SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />
+          <ColorSelectBar key={'color-select-bar'} onClick={this.setActiveColor} interactionFrozen={this.props.interactionFrozen} />
         </div>
       );
     }
+
+    return Category.fillColumn(contents,this.props.name,hidden);
   }
 }
 
@@ -1066,20 +1199,22 @@ class SingleColorYouCheckboxSet extends React.Component {
   }
 
   getActiveColor(optionIndex) {
-    var newOptionColors = [];
-    if (this.props.youOrThem.toLowerCase()=="you") {
-      for(let i=0; i<this.optionColors.length; i++) {
-        if (i==optionIndex) {
-          newOptionColors[i] = 'green';
-        } else {
-          newOptionColors[i] = 'white';
+    if (!this.props.interactionFrozen) {
+      var newOptionColors = [];
+      if (this.props.youOrThem.toLowerCase()=="you") {
+        for(let i=0; i<this.optionColors.length; i++) {
+          if (i==optionIndex) {
+            newOptionColors[i] = 'green';
+          } else {
+            newOptionColors[i] = 'white';
+          }
         }
+      } else {
+        newOptionColors = this.state.optionColors;
+        newOptionColors[optionIndex] = this.activeColor;
       }
-    } else {
-      newOptionColors = this.state.optionColors;
-      newOptionColors[optionIndex] = this.activeColor;
+      this.setState({optionColors: newOptionColors});
     }
-    this.setState({optionColors: newOptionColors});
   }
 
   render() {
@@ -1089,25 +1224,40 @@ class SingleColorYouCheckboxSet extends React.Component {
       this.props.retrieve(this.toArrayJson()); //non-category parents will want to use numerical indices
     }
 
+    var hidden = false;
+    if (this.props.emptyElementsHidden) {
+      var arrayJson = this.toArrayJson();
+      hidden = true;
+      for (let index in arrayJson) {
+        if (arrayJson[index]!='none') {
+          hidden = false;
+          break;
+        }
+      }
+    }
+
     var commonHtml = [];
     commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} />);
-    commonHtml.push(<CheckboxSelectBox key={'select-box'} possibleOptions={this.props.possibleOptions} colors={this.state.optionColors} onClick={this.getActiveColor} />);
-    commonHtml.push(<SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} />);
+    commonHtml.push(<CheckboxSelectBox key={'select-box'} possibleOptions={this.props.possibleOptions} colors={this.state.optionColors} onClick={this.getActiveColor} interactionFrozen={this.props.interactionFrozen} />);
+    commonHtml.push(<SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />);
 
+    var contents = '';
     if (this.props.youOrThem.toLowerCase()=="you") {
-      return (
+      contents = (
         <div className="multicolorCheckbox">
           {commonHtml}
         </div>
       );
     } else {
-      return (
+      contents = (
         <div className="multicolorCheckbox">
           {commonHtml}
-          <ColorSelectBar key={'color-select-bar'} onClick={this.setActiveColor} />
+          <ColorSelectBar key={'color-select-bar'} onClick={this.setActiveColor} interactionFrozen={this.props.interactionFrozen} />
         </div>
       );
     }
+
+    return Category.fillColumn(contents,this.props.name,hidden);
   }
 }
 
@@ -1162,7 +1312,7 @@ class FuzzySelectBar extends React.Component {
     }
 
     return (
-      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false}/>
+      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false} interactionFrozen={this.props.interactionFrozen} loadedJson={this.props.loadedJson} emptyElementsHidden={this.props.emptyElementsHidden} />
     );
   }
 }
@@ -1219,7 +1369,7 @@ class NumericalSelectBar extends React.Component {
     }
 
     return (
-      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false} />
+      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false} interactionFrozen={this.props.interactionFrozen} loadedJson={this.props.loadedJson} emptyElementsHidden={this.props.emptyElementsHidden} />
     );
   }
 }
@@ -1254,7 +1404,7 @@ class BooleanSelectBar extends React.Component {
     possibleOptions[1] = "Yes";
 
     return (
-      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false} />
+      <SingleColorYouCheckboxSet name={this.props.name} youOrThem={this.props.youOrThem} possibleOptions={possibleOptions} retrieve={this.retrieve} parentIsCategory={false} interactionFrozen={this.props.interactionFrozen} loadedJson={this.props.loadedJson} emptyElementsHidden={this.props.emptyElementsHidden} />
     );
   }
 }
