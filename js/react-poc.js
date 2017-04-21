@@ -51,7 +51,9 @@ class Chart extends React.Component {
 
     this.categorySingleColorYou2DCheckboxMap = {'Beliefs': {'Economic Views': {'top': 'Capitalist', 'bottom': 'Socialist', 'left': 'Free Market', 'right': 'Regulated Market', 'cellDimensions': 5}}};
 
-    this.bulletListMap = { 'Other': {'Contact Info': {'maxBullets': 3}}}
+    this.bulletListMap = { 'Other': {'Contact Info': {'maxBullets': 3}}};
+
+    this.singleBulletListMap = { 'Other': ['Location']};
 
     this.categoryElementMap = {
       'singleColorYouCheckboxSets':   this.categorySingleColorYouCheckboxMap,
@@ -60,7 +62,8 @@ class Chart extends React.Component {
       'numericalSelectBars':          this.categoryNumericalBarMap,
       'fuzzySelectBars':              this.categoryFuzzyBarMap,
       'singleColorYou2DCheckboxSets': this.categorySingleColorYou2DCheckboxMap,
-      'bulletLists':                  this.bulletListMap
+      'bulletLists':                  this.bulletListMap,
+      'singleBulletLists':            this.singleBulletListMap
     };
 
     this.allowDownloadClick = true; //prevent the backend from being POST-spammed through the frontend by download-button mashing
@@ -574,10 +577,17 @@ class Category extends React.Component {
     var wrappedSingleColorYouElements = Category.fillGrid(singleColorYouElements);
 
     var bulletListElements = [];
+    for (let singleBulletListIndex in this.props.elementMap['singleBulletLists']) {
+      let name = this.props.elementMap['singleBulletLists'][singleBulletListIndex];
+      bulletListElements.push(<SingleBulletList name={name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
+    }
+
     for (let bulletListName in this.props.elementMap['bulletLists']) {
       let properties = this.props.elementMap['bulletLists'][bulletListName];
-      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
+      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} singleBulletList={false} />);
     }
+
+    var wrappedBulletListElements = Category.fillGrid(bulletListElements);
 
     var multicolorYouElements = [];
     for (let multicolorCheckboxSetName in this.props.elementMap['multicolorCheckboxSets']) {
@@ -593,7 +603,7 @@ class Category extends React.Component {
 
     var bodyContents = (
         <div className="categoryBody">
-          {bulletListElements}
+          {wrappedBulletListElements}
           {wrappedSingleColorYouElements}
           {multicolorYouElements}
         </div>
@@ -1527,8 +1537,13 @@ class BulletList extends React.Component {
     this.currentKeySet = 'A';
     this.keySet        = this.keysA;
 
+    var bulletContents = [];
+    if (this.props.singleBulletList) {
+      bulletContents[0] = '';
+    }
+
     this.state = {
-      bulletContents: []
+      bulletContents: bulletContents
     };
   }
 
@@ -1568,7 +1583,12 @@ class BulletList extends React.Component {
   }
 
   reset() {
-    this.setState({bulletContents: []});
+    if (this.props.singleBulletList) {
+      this.setState({bulletContents: ['']});
+    } else {
+      this.setState({bulletContents: []});
+    }
+    this.justResetBullet = true; //this also requires a re-mount
   }
 
   isEmpty() {
@@ -1577,7 +1597,7 @@ class BulletList extends React.Component {
 
   render() {
     //ugly hack to force remount only after closing bullet (by switching to a new set of keys)
-    if (this.justClosedBullet) {
+    if (this.justClosedBullet || this.justResetBullet) {
       if (this.currentKeySet=='A') {
         this.keySet = this.keysB;
         this.currentKeySet = 'B';
@@ -1587,21 +1607,29 @@ class BulletList extends React.Component {
       }
     }
     this.justClosedBullet = false;
+    this.justResetBullet  = false;
 
     var bulletSetAndNewBulletButton = [];
     for (let i=0; i<this.state.bulletContents.length; i++) {
-      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} />);
+      var isEmpty = false;
+      if (this.state.bulletContents[i]=='') {
+        isEmpty = true;
+      }
+
+      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
     }
 
-    //add a little space between the bullet points and the new bullet button
-    if (this.state.bulletContents.length!=0 && this.state.bulletContents.length!=BulletList.maxBullets) {
-      bulletSetAndNewBulletButton.push(<div style={{height: 7}}></div>);
-    }
+    if (!this.props.singleBulletList) {
+      //add a little space between the bullet points and the new bullet button
+      if (this.state.bulletContents.length!=0 && this.state.bulletContents.length!=BulletList.maxBullets) {
+        bulletSetAndNewBulletButton.push(<div style={{height: 7}}></div>);
+      }
 
-    //console.log(this.state.bulletContents.length);
-    //console.log(BulletList.maxBullets);
-    if (this.state.bulletContents.length<BulletList.maxBullets) {
-      bulletSetAndNewBulletButton.push(<NewBulletButton name={this.props.name} maxBullets={BulletList.maxBullets} newBullet={this.newBullet} interactionFrozen={this.props.interactionFrozen} />);
+      //console.log(this.state.bulletContents.length);
+      //console.log(BulletList.maxBullets);
+      if (this.state.bulletContents.length<BulletList.maxBullets) {
+        bulletSetAndNewBulletButton.push(<NewBulletButton name={this.props.name} maxBullets={BulletList.maxBullets} newBullet={this.newBullet} interactionFrozen={this.props.interactionFrozen} />);
+      }
     }
 
     var hidden = false;
@@ -1609,10 +1637,15 @@ class BulletList extends React.Component {
       hidden = true;
     }
 
+    var resetType = "reset";
+    if (this.props.singleBulletList) {
+      resetType = "undo";
+    }
+
     var contents = (
       <div className="multicolorCheckbox">
         <div className="bulletList">
-          <ElementName optionalNotice={true} key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"reset"} />
+          <ElementName optionalNotice={true} key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={resetType} />
           {bulletSetAndNewBulletButton}
         </div>
       </div>
@@ -1622,19 +1655,34 @@ class BulletList extends React.Component {
   }
 }
 
+//does nothing exciting at the moment
+class SingleBulletList extends React.Component {
+  render() {
+    return (
+      <BulletList name={this.props.name} retrieve={this.props.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} singleBulletList={true} />
+    );
+  }
+}
+
 //props: preloadedContents, index, closeBullet (callback), retrieve (callback)
 class Bullet extends React.Component {
   render() {
-    var displayStyle = 'block';
-    if (this.props.interactionFrozen) {
+    var displayStyle = 'inline-block';
+    if (this.props.interactionFrozen && this.props.isEmpty) {
       displayStyle = 'none';
     }
 
+    var contents = [];
+    contents.push(<span>•&nbsp;</span>);
+    contents.push(<BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} />);
+
+    if (!this.props.singleBulletList) {
+      contents.push(<CloseBulletButton closeBullet={this.props.closeBullet} index={this.props.index} interactionFrozen={this.props.interactionFrozen} />);
+    }
+
     return (
-      <div className="bullet">
-        <span>•&nbsp;</span>
-        <BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} interactionFrozen={this.props.interactionFrozen} />
-        <CloseBulletButton closeBullet={this.props.closeBullet} index={this.props.index} interactionFrozen={this.props.interactionFrozen} />
+      <div className="bullet" style={{display: displayStyle}}>
+        {contents}
       </div>
     );
   }
