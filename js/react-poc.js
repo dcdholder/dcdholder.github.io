@@ -51,9 +51,9 @@ class Chart extends React.Component {
 
     this.categorySingleColorYou2DCheckboxMap = {'Beliefs': {'Economic Views': {'top': 'Capitalist', 'bottom': 'Socialist', 'left': 'Free Market', 'right': 'Regulated Market', 'cellDimensions': 5}}};
 
-    this.bulletListMap = { 'Other': {'Contact Info': {'maxBullets': 3}}};
+    this.bulletListMap = { 'More Information': {'Contact Info': {'maxBullets': 3}, 'Sites/Boards': {'maxBullets': 3}, 'Sports': {'maxBullets': 3}, 'Music': {'maxBullets': 3}, 'Literature': {'maxBullets': 3}, 'Games': {'maxBullets': 3}, 'Movies/TV': {'maxBullets': 3}, 'Mutual Activities': {'maxBullets': 7}, 'Other Interests': {'maxBullets': 6}, 'Other Information': {'maxBullets': 10}}};
 
-    this.singleBulletListMap = { 'Other': ['Location']};
+    this.singleBulletListMap = { 'Other': ['Location', 'Occupation']};
 
     this.categoryElementMap = {
       'singleColorYouCheckboxSets':   this.categorySingleColorYouCheckboxMap,
@@ -420,10 +420,22 @@ class Target extends React.Component {
   }
 
   render() {
-    var elementMapByCategoryByType = {'Physical': {}, 'Emotional': {}, 'Beliefs': {}, 'Other': {}}; //TODO: category names should be available globally
+    var onlyInYouCategory = ['More Information'];
+    var unfilteredElementMapByCategoryByType = {'Physical': {}, 'Emotional': {}, 'Beliefs': {}, 'Other': {},  'More Information' : {}}; //TODO: category names should be available globally
+
+    //filter out categories not applicable to this target
+    var elementMapByCategoryByType = {};
+    for (let categoryNameTmp in unfilteredElementMapByCategoryByType) {
+      if (this.props.targetName.toLowerCase()=="you" || !(onlyInYouCategory.includes(categoryNameTmp))) {
+        elementMapByCategoryByType[categoryNameTmp] = {};
+      }
+    }
+
     for (let elementType in this.props.categoryElementMap) {
       for (let categoryName in this.props.categoryElementMap[elementType]) {
-        elementMapByCategoryByType[categoryName][elementType] = this.props.categoryElementMap[elementType][categoryName];
+        if (this.props.targetName.toLowerCase()=="you" || !(onlyInYouCategory.includes(categoryName))) {
+          elementMapByCategoryByType[categoryName][elementType] = this.props.categoryElementMap[elementType][categoryName];
+        }
       }
     }
 
@@ -584,7 +596,7 @@ class Category extends React.Component {
 
     for (let bulletListName in this.props.elementMap['bulletLists']) {
       let properties = this.props.elementMap['bulletLists'][bulletListName];
-      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} singleBulletList={false} />);
+      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={properties['maxBullets']} singleBulletList={false} />);
     }
 
     var wrappedBulletListElements = Category.fillGrid(bulletListElements);
@@ -1529,9 +1541,9 @@ class BulletList extends React.Component {
     //two sets of component keys -- used for forcing re-mounts
     this.keysA = [];
     this.keysB = [];
-    for (let i=0;i<BulletList.maxBullets;i++) {
+    for (let i=0;i<this.props.maxBullets;i++) {
       this.keysA[i] = i;
-      this.keysB[i] = i+BulletList.maxBullets;
+      this.keysB[i] = i+this.props.maxBullets;
     }
 
     this.currentKeySet = 'A';
@@ -1547,10 +1559,8 @@ class BulletList extends React.Component {
     };
   }
 
-  static get maxBullets() { return 3; };
-
   newBullet() {
-    if (this.state.bulletContents.length<BulletList.maxBullets) { //limit the maximum number of bullets to prevent abuse
+    if (this.state.bulletContents.length<this.props.maxBullets) { //limit the maximum number of bullets to prevent abuse
       var tmpContents = [];
       for (let i=0;i<this.state.bulletContents.length;i++) {
         tmpContents.push(this.state.bulletContents[i]);
@@ -1619,17 +1629,15 @@ class BulletList extends React.Component {
       bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
     }
 
-    if (!this.props.singleBulletList) {
-      //add a little space between the bullet points and the new bullet button
-      if (this.state.bulletContents.length!=0 && this.state.bulletContents.length!=BulletList.maxBullets) {
-        bulletSetAndNewBulletButton.push(<div style={{height: 7}}></div>);
-      }
+    //add a little space between the bullet points and the new bullet button
+    if (this.state.bulletContents.length!=0 && this.state.bulletContents.length!=this.props.maxBullets) {
+      bulletSetAndNewBulletButton.push(<div style={{height: 7}}></div>);
+    }
 
-      //console.log(this.state.bulletContents.length);
-      //console.log(BulletList.maxBullets);
-      if (this.state.bulletContents.length<BulletList.maxBullets) {
-        bulletSetAndNewBulletButton.push(<NewBulletButton name={this.props.name} maxBullets={BulletList.maxBullets} newBullet={this.newBullet} interactionFrozen={this.props.interactionFrozen} />);
-      }
+    //console.log(this.state.bulletContents.length);
+    //console.log(this.props.maxBullets);
+    if (this.state.bulletContents.length<this.props.maxBullets) {
+      bulletSetAndNewBulletButton.push(<NewBulletButton name={this.props.name} maxBullets={this.props.maxBullets} newBullet={this.newBullet} interactionFrozen={this.props.interactionFrozen} />);
     }
 
     var hidden = false;
@@ -1659,7 +1667,7 @@ class BulletList extends React.Component {
 class SingleBulletList extends React.Component {
   render() {
     return (
-      <BulletList name={this.props.name} retrieve={this.props.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} singleBulletList={true} />
+      <BulletList name={this.props.name} retrieve={this.props.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} />
     );
   }
 }
