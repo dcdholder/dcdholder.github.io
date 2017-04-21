@@ -805,7 +805,7 @@ class MulticolorCheckbox extends React.Component {
     //TODO: the extra line breaks here are a hideous kludge
     var contents = (
       <div className="multicolorCheckbox">
-        <ElementName name={this.props.label} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"undo"} />
+        <ElementName name={this.props.label} optionalNotice={false} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"undo"} />
         {choices}
         <span className="multicolorCheckboxFooter" style={{display: footerDisplayStyle}}>{this.state.footer}</span>
       </div>
@@ -975,9 +975,23 @@ class SingleColorYouControlsText extends React.Component {
 //props: name, interactionFrozen, reset (callback)
 class ElementName extends React.Component {
   render() {
+    var title = "Mandatory for chart image generation";
+    var text  = this.props.name + ':';
+    if (this.props.optionalNotice) {
+      title = "Optional for chart image generation";
+
+      if (!this.props.interactionFrozen) {
+        text  = this.props.name + '* :';
+      }
+    }
+
+    if (this.props.interactionFrozen) {
+      title = '';
+    }
+
     return (
       <div>
-        <label className="elementName"><span><b>{this.props.name + ':'}</b></span></label>
+        <label className="elementName"><span title={title}><b>{text}</b></span></label>
         <ResetButton resetType={this.props.resetType} reset={this.props.reset} interactionFrozen={this.props.interactionFrozen} />
       </div>
     );
@@ -1319,7 +1333,7 @@ class SingleColorYouCheckboxSet extends React.Component {
     }
 
     var commonHtml = [];
-    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={resetType} />);
+    commonHtml.push(<ElementName key={this.props.name + '-name'} name={this.props.name} optionalNotice={false} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={resetType} />);
     commonHtml.push(<CheckboxSelectBox key={'select-box'} possibleOptions={this.props.possibleOptions} colors={this.state.optionColors} onClick={this.getActiveColor} interactionFrozen={this.props.interactionFrozen} />);
     commonHtml.push(<SingleColorYouControlsText key={this.props.youOrThem + '-text'} youOrThem={this.props.youOrThem} isHidden={this.props.interactionFrozen} />);
 
@@ -1598,7 +1612,7 @@ class BulletList extends React.Component {
     var contents = (
       <div className="multicolorCheckbox">
         <div className="bulletList">
-          <ElementName key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"reset"} />
+          <ElementName optionalNotice={true} key={this.props.name + '-name'} name={this.props.name} interactionFrozen={this.props.interactionFrozen} reset={this.reset} resetType={"reset"} />
           {bulletSetAndNewBulletButton}
         </div>
       </div>
