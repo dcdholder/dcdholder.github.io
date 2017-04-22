@@ -312,7 +312,7 @@ class Chart extends React.Component {
         var imageBlob = new Blob([httpRequest.response], {type: 'application/octet-stream'});
         that.hideGenerateWaitAnimation();
         that.allowDownloadClick = true;
-        saveAs(imageBlob, "chart.png");
+        saveAs(imageBlob, "chart.jpg");
       } else if (httpRequest.status>=400) { //something went wrong
         //console.log('Failed response.');
         that.showFailedRequestWarning();
