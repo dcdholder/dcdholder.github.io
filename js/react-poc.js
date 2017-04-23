@@ -280,6 +280,8 @@ class Chart extends React.Component {
 
     this.hideProcessingErrorWarning();
 
+    console.log(this.jsonFrontend2BackendRepresentation());
+
     if (!this.noMissingElements()) {
       this.showEmptyFieldWarning();
       return;
@@ -287,7 +289,6 @@ class Chart extends React.Component {
 
     var httpRequest = new XMLHttpRequest();
 
-    //console.log(this.jsonFrontend2BackendRepresentation());
     //console.log(JSON.stringify(this.jsonFrontend2BackendRepresentation()).length);
     /*
     //refuse to go further and display a warning if fields are unselected
@@ -1080,7 +1081,9 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     var colorScores = {};
     for (let j=0;j<this.props.cellDimensions;j++) {
       for (let i=0;i<this.props.cellDimensions;i++) {
-        colorScores[i + ',' + (this.props.cellDimensions-j-1)] = ColorSelectBar.scoreFromColor(this.state.optionColors[j][i]); //need to invert rows to index from the bottom left
+        if (this.props.youOrThem.toLowerCase()=="them" || ColorSelectBar.scoreFromColor(this.state.optionColors[j][i])!='none') {
+          colorScores[i + ',' + (this.props.cellDimensions-j-1)] = ColorSelectBar.scoreFromColor(this.state.optionColors[j][i]); //need to invert rows to index from the bottom left
+        }
       }
     }
 
@@ -1280,7 +1283,9 @@ class SingleColorYouCheckboxSet extends React.Component {
     var colorScores = {};
     var asArray = this.toArrayJson();
     for (let index in asArray) {
-      colorScores[this.props.possibleOptions[index].toLowerCase()] = asArray[index];
+      if (this.props.youOrThem.toLowerCase()=="them" || asArray[index]!='none') {
+        colorScores[this.props.possibleOptions[index].toLowerCase()] = asArray[index];
+      }
     }
 
     var colorScoresWithName = {};
