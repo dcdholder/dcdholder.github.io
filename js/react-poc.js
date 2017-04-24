@@ -144,15 +144,24 @@ class Chart extends React.Component {
         for (let elementName in this.json[targetName][categoryName]) {
           let nonNoneElementExists = false;
           let noneElementExists    = false;
-          for (let subelementName in this.json[targetName][categoryName][elementName]) {
-            if (this.json[targetName][categoryName][elementName][subelementName]!='none') {
+
+          if ((typeof this.json[targetName][categoryName][elementName])!='string') {
+            for (let subelementName in this.json[targetName][categoryName][elementName]) {
+              if (this.json[targetName][categoryName][elementName][subelementName]!='none') {
+                nonNoneElementExists = true;
+              } else {
+                noneElementExists = true;
+              }
+            }
+          } else {
+            if (this.json[targetName][categoryName][elementName]!='none') {
               nonNoneElementExists = true;
             } else {
               noneElementExists = true;
             }
           }
 
-          //whether 'you' or 'them', ever MC CB in the set should be filled out
+          //whether 'you' or 'them', every MC CB in the set should be filled out
           if (this.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
             if (this.capitalize(elementName) in this.categoryMulticolorCheckboxMap[this.capitalize(categoryName)]) {
               if (noneElementExists) {
@@ -280,7 +289,7 @@ class Chart extends React.Component {
 
     this.hideProcessingErrorWarning();
 
-    console.log(this.jsonFrontend2BackendRepresentation());
+    //console.log(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
 
     if (!this.noMissingElements()) {
       this.showEmptyFieldWarning();
@@ -1559,6 +1568,11 @@ class BulletList extends React.Component {
       bulletContents[0] = '';
     }
 
+    //feed the parent an empty list to start off with
+    var bulletListJson = {};
+    bulletListJson[this.props.name.toLowerCase()] = [''];
+    this.props.retrieve(bulletListJson);
+
     this.state = {
       bulletContents: bulletContents
     };
@@ -1595,6 +1609,10 @@ class BulletList extends React.Component {
     tmpContents[index] = event.target.value;
 
     this.setState({bulletContents: tmpContents});
+
+    var bulletListJson = {};
+    bulletListJson[this.props.name.toLowerCase()] = tmpContents;
+    this.props.retrieve(bulletListJson);
   }
 
   reset() {
@@ -1670,9 +1688,21 @@ class BulletList extends React.Component {
 
 //does nothing exciting at the moment
 class SingleBulletList extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.retrieve = this.retrieve.bind(this);
+  }
+
+  retrieve(childJson) {
+    var singleBulletListJson = {};
+    singleBulletListJson[this.props.name.toLowerCase()] = childJson[this.props.name.toLowerCase()][0]
+    this.props.retrieve(singleBulletListJson)
+  }
+
   render() {
     return (
-      <BulletList name={this.props.name} retrieve={this.props.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} />
+      <BulletList name={this.props.name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} />
     );
   }
 }
@@ -1702,10 +1732,12 @@ class Bullet extends React.Component {
 }
 
 class BulletEntryBox extends React.Component {
+  static get maxLength() { return 20; }
+
   render() {
     return (
       <div className="bulletEntry">
-        <input type="text" defaultValue={this.props.preloadedContents} disabled={this.props.interactionFrozen} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} />
+        <input type="text" defaultValue={this.props.preloadedContents} disabled={this.props.interactionFrozen} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} maxLength={BulletEntryBox.maxLength} />
       </div>
     );
   }
