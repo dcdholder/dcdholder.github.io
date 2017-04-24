@@ -612,6 +612,7 @@ button:hover {
 }
 
 .footerButtons {
+  float: left;
   display: inline-block;
 }
 
@@ -700,4 +701,9 @@ button:hover {
   padding-right: 3px;
   cursor: pointer;
   background-color:#ffcc80;
+}
+
+.contactInfo {
+  float: right;
+  color: white;
 }

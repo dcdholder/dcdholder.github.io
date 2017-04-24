@@ -6,13 +6,17 @@ class Chart extends React.Component {
   constructor (props) { //TODO: change this to a yaml parser when you're done testing out the basic UI
     super(props);
 
+    this.developmentMode = false;
+
     this.json = {};
 
     this.retrieve = this.retrieve.bind(this);
 
     this.tagLine = "The Ultimate QT Infograph";
-    this.webVersion  = "1.0";
+    this.webVersion  = "1.1";
     this.chartVersion = "3.0";
+
+    this.adminEmail = 'qtprime@qtchart.com';
 
     this.requestChartImage = this.requestChartImage.bind(this);
 
@@ -346,15 +350,20 @@ class Chart extends React.Component {
       targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
     }
 
+    var footerButtons = [];
+    footerButtons.push(<button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>);
+    if (this.developmentMode) {
+      footerButtons.push(<button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>);
+      footerButtons.push(<button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>);
+    }
+
     return (
       <div className="chart fillSmallScreen">
         <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
         {targets}
         <div className="chartFooter">
           <div className="footerButtons">
-            <button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>
-            <button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>
-            <button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>
+            {footerButtons}
           </div>
           <div className={'errorMessage ' + this.state.errorMessageDisplayMode}>{this.state.errorMessage}</div>
         </div>
@@ -384,13 +393,15 @@ class ChartName extends React.Component {
           <table>
             <tbody>
               <tr>
-                <td className="paddingTd">&nbsp;</td>
+                <td colSpan="2" className="paddingTd">&nbsp;</td>
               </tr>
               <tr>
-                <td className="webVersionTd">Web Version: {this.props.webVersion}</td>
+                <td className="webVersionTd">Web Version:&nbsp;</td>
+                <td className="versionNumber">{this.props.webVersion}</td>
               </tr>
               <tr>
-                <td className="chartVersionTd">Chart Version: {this.props.chartVersion}</td>
+                <td className="chartVersionTd">Chart Version:&nbsp;</td>
+                <td className="versionNumber">{this.props.chartVersion}</td>
               </tr>
             </tbody>
           </table>
