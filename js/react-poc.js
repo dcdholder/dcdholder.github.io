@@ -13,7 +13,7 @@ class Chart extends React.Component {
     this.retrieve = this.retrieve.bind(this);
 
     this.tagLine = "The Ultimate QT Infograph";
-    this.webVersion  = "1.1";
+    this.webVersion  = "1.1 Alpha";
     this.chartVersion = "3.0";
 
     this.adminEmail = 'qtprime@qtchart.com';
@@ -487,7 +487,6 @@ class Category extends React.Component {
 
     this.retrieve = this.retrieve.bind(this);
 
-
     this.detailsOpen                = true;
     this.categoryDetailsManipulable = true;
   }
@@ -578,7 +577,7 @@ class Category extends React.Component {
       }
     } else {
       this.categoryDetailsManipulable = true;
-      this.detailsOpen = this.detailsPreviouslyOpen
+      this.detailsOpen                = true; //TODO: should depend on whether the details was previously open
     }
 
     //TODO: Really ugly and verbose. See if there's not a way to fix this.
