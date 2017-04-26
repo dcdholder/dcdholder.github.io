@@ -83,7 +83,7 @@ class Chart extends React.Component {
   }
 
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
-  static get restServerDomain() { return 'http://Hollerache.pythonanywhere.com/'; }
+  static get restServerDomain() { return 'http://image-api.qtchart.com/'; }
   static get defaultGenerateButtonText() { return 'Download'; }
   static get generateAnimationTick() {return 1000; }
 

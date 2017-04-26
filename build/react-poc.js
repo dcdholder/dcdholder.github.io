@@ -433,7 +433,7 @@ var Chart = function (_React$Component) {
   }], [{
     key: "restServerDomain",
     get: function get() {
-      return 'http://Hollerache.pythonanywhere.com/';
+      return 'http://image-api.qtchart.com/';
     }
   }, {
     key: "defaultGenerateButtonText",
