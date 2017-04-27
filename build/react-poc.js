@@ -23,7 +23,7 @@ var Chart = function (_React$Component) {
     var _this = _possibleConstructorReturn(this, (Chart.__proto__ || Object.getPrototypeOf(Chart)).call(this, props)); //TODO: change this to a yaml parser when you're done testing out the basic UI
 
 
-    _this.developmentMode = false;
+    _this.developmentMode = true;
 
     _this.json = {};
 
@@ -93,6 +93,8 @@ var Chart = function (_React$Component) {
       interactionFrozen: false,
       emptyElementsHidden: false
     };
+
+    _this.userDataFromSessionCookie(_this.pageLoadHandler.bind(_this));
     return _this;
   }
 
@@ -112,6 +114,11 @@ var Chart = function (_React$Component) {
       } else {
         return {};
       }
+    }
+  }, {
+    key: "clearAll",
+    value: function clearAll() {
+      this.setState({ loadedJson: {} });
     }
   }, {
     key: "freezeInteraction",
@@ -249,9 +256,184 @@ var Chart = function (_React$Component) {
       return true;
     }
   }, {
-    key: "imageRequestUri",
-    value: function imageRequestUri() {
-      return Chart.restServerDomain + 'new';
+    key: "pageLoadHandler",
+    value: function pageLoadHandler(initialData) {
+      this.setState({ loadedJson: initialData });
+    }
+  }, {
+    key: "createPage",
+    value: function createPage(username, password) {
+      this.createPageServerSide(username, password, this.json);
+    }
+  }, {
+    key: "deleteUser",
+    value: function deleteUser(username, password) {
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('DELETE', Chart.userDeleteRequestUri, true);
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "text";
+      httpRequest.send(JSON.stringify({ "username": username, "password": password }));
+    }
+  }, {
+    key: "userDataFromSessionCookie",
+    value: function userDataFromSessionCookie(handler) {
+      //returns nothing and deletes session cookie on error
+      var sessionId;
+      var username;
+      var initialData = {};
+
+      var httpRequest = new XMLHttpRequest();
+
+      if (localStorage.getItem("sessionId") !== null) {
+        httpRequest.open('POST', Chart.userUsernameRequestUri, true); //need the username before we can do anything else
+        httpRequest.setRequestHeader('Content-Type', 'application/json');
+        //httpRequest.responseType = "text";
+
+        console.log(JSON.stringify({ "sessionId": localStorage.getItem("sessionId") }));
+
+        var that = this;
+        httpRequest.onreadystatechange = function () {
+          if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+            username = httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, "");
+            that.userDataFromUsername(username, handler);
+          } else if (httpRequest.status >= 400) {
+            //localStorage.removeItem("sessionId"); //TODO: uncomment these
+          }
+        };
+        httpRequest.onerror = function () {
+          //localStorage.removeItem("sessionId"); //TODO: uncomment these
+        };
+        //httpRequest.send(JSON.stringify({"username": "username"}));
+        httpRequest.send(JSON.stringify({ "sessionId": localStorage.getItem("sessionId") }));
+      }
+    }
+  }, {
+    key: "userDataFromUsername",
+    value: function userDataFromUsername(username, handler) {
+      var initialData = '';
+
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('POST', Chart.userDataRequestUri, true); //need the data before we can load components
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "json";
+
+      var that = this;
+      httpRequest.onreadystatechange = function () {
+        if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+          initialData = httpRequest.response;
+          handler(initialData);
+        } else if (httpRequest.status >= 400) {
+          localStorage.removeItem("sessionId");
+        }
+      };
+      httpRequest.onerror = function () {
+        localStorage.removeItem("sessionId");
+      };
+      httpRequest.send(JSON.stringify({ 'username': username }));
+    }
+  }, {
+    key: "createPageServerSide",
+    value: function createPageServerSide(username, password, userData) {
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('POST', Chart.userCreationRequestUri, true);
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "text";
+
+      var that = this;
+      httpRequest.onreadystatechange = function () {
+        if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
+          localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        } else if (httpRequest.status >= 400) {
+          that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        }
+      };
+      httpRequest.onerror = function () {
+        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+      };
+      httpRequest.send(JSON.stringify({ "username": username, "password": password, "userData": userData }));
+    }
+  }, {
+    key: "logout",
+    value: function logout() {
+      this.clearAll();
+      this.setDisplayMode('visitor');
+
+      localStorage.removeItem('sessionId');
+
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('DELETE', Chart.userLogoutRequestUri, true);
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "text";
+      httpRequest.send(JSON.stringify({ "sessionId": localStorage.getItem('sessionId') }));
+    }
+  }, {
+    key: "login",
+    value: function login(username, password, handler) {
+      localStorage.removeItem('sessionId');
+      this.setDisplayMode('visitor'); //disable further editing while we load the user's saved data
+
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('POST', Chart.userLoginRequestUri, true);
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "text";
+
+      //grab our session from the login response
+      var that = this;
+      httpRequest.onreadystatechange = function () {
+        if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
+          localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+          that.userDataFromSessionCookie(handler);
+        } else if (httpRequest.status >= 400) {
+          that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        }
+      };
+      httpRequest.onerror = function () {
+        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+      };
+      httpRequest.send(JSON.stringify({ "username": username, "password": password }));
+      this.setDisplayMode('owner');
+    }
+  }, {
+    key: "setDisplayMode",
+    value: function setDisplayMode(userType) {
+      if (userType === "visitor") {
+        this.setState({
+          interactionFrozen: true,
+          emptyElementsHidden: true
+        });
+      } else if (userType === "owner") {
+        this.setState({
+          interactionFrozen: false,
+          emptyElementsHidden: false
+        });
+      }
+    }
+  }, {
+    key: "updatePageServerSide",
+    value: function updatePageServerSide() {
+      var httpRequest = new XMLHttpRequest();
+
+      httpRequest.open('POST', Chart.userDataUpdateRequestUri, true);
+      httpRequest.setRequestHeader("Content-type", "application/json");
+      httpRequest.responseType = "text";
+
+      var that = this;
+      httpRequest.onreadystatechange = function () {
+        if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+          localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        } else if (httpRequest.status >= 400) {
+          that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        }
+      };
+      httpRequest.onerror = function () {
+        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+      };
+      httpRequest.send(JSON.stringify({ "sessionId": localStorage.getItem("sessionId"), "userData": this.json }));
     }
   }, {
     key: "showGenerateWaitAnimation",
@@ -295,8 +477,8 @@ var Chart = function (_React$Component) {
     }
   }, {
     key: "showFailedRequestWarning",
-    value: function showFailedRequestWarning() {
-      this.setState({ errorMessage: 'Server error, try again later.', errorMessageDisplayMode: 'on' });
+    value: function showFailedRequestWarning(errorMessage) {
+      this.setState({ errorMessage: errorMessage, errorMessageDisplayMode: 'on' });
       window.scrollTo(0, document.body.scrollHeight);
     }
   }, {
@@ -362,13 +544,13 @@ var Chart = function (_React$Component) {
         } else if (httpRequest.status >= 400) {
           //something went wrong
           //console.log('Failed response.');
-          that.showFailedRequestWarning();
+          that.showFailedRequestWarning('Could not contact image generation server -- try again.');
           that.hideGenerateWaitAnimation();
           that.allowDownloadClick = true;
         }
       };
       httpRequest.onerror = function () {
-        that.showFailedRequestWarning();
+        that.showFailedRequestWarning('Could not contact image generation server -- try again.');
         that.hideGenerateWaitAnimation();
         that.allowDownloadClick = true;
       };
@@ -407,6 +589,62 @@ var Chart = function (_React$Component) {
             } },
           "Hider"
         ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "createUserA", onClick: function onClick() {
+              _this2.createPage("testusera", "password", _this2.json);
+            } },
+          "CreateUserA"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "createUserB", onClick: function onClick() {
+              _this2.createPage("testuserb", "password", _this2.json);
+            } },
+          "CreateUserB"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "loginUserA", onClick: function onClick() {
+              _this2.login("testusera", "password", _this2.pageLoadHandler.bind(_this2));
+            } },
+          "LoginUserA"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "loginUserB", onClick: function onClick() {
+              _this2.login("testuserb", "password", _this2.pageLoadHandler.bind(_this2));
+            } },
+          "LoginUserB"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "deleteUserA", onClick: function onClick() {
+              return _this2.deleteUser("testusera", "password");
+            } },
+          "DeleteUserA"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "deleteUserB", onClick: function onClick() {
+              return _this2.deleteUser("testuserb", "password");
+            } },
+          "DeleteUserB"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "Update", onClick: function onClick() {
+              _this2.updatePageServerSide();
+            } },
+          "Update"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "Logout", onClick: function onClick() {
+              _this2.logout();
+            } },
+          "Logout"
+        ));
       }
 
       return React.createElement(
@@ -431,9 +669,54 @@ var Chart = function (_React$Component) {
       );
     }
   }], [{
-    key: "restServerDomain",
+    key: "webApiDomain",
     get: function get() {
-      return 'http://image-api.qtchart.com/';
+      return 'http://web-api.qtchart.com';
+    }
+  }, {
+    key: "imageApiDomain",
+    get: function get() {
+      return 'http://image-api.qtchart.com';
+    }
+  }, {
+    key: "imageRequestUri",
+    get: function get() {
+      return Chart.imageApiDomain + '/new';
+    }
+  }, {
+    key: "userDataRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/read';
+    }
+  }, {
+    key: "userCreationRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/create';
+    }
+  }, {
+    key: "userDataUpdateRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/update';
+    }
+  }, {
+    key: "userLoginRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/login';
+    }
+  }, {
+    key: "userLogoutRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/logout';
+    }
+  }, {
+    key: "userUsernameRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/username';
+    }
+  }, {
+    key: "userDeleteRequestUri",
+    get: function get() {
+      return Chart.webApiDomain + '/user/delete';
     }
   }, {
     key: "defaultGenerateButtonText",
@@ -771,12 +1054,12 @@ var Category = function (_React$Component4) {
       var bulletListElements = [];
       for (var singleBulletListIndex in this.props.elementMap['singleBulletLists']) {
         var name = this.props.elementMap['singleBulletLists'][singleBulletListIndex];
-        bulletListElements.push(React.createElement(SingleBulletList, { name: name, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden }));
+        bulletListElements.push(React.createElement(SingleBulletList, { name: name, retrieve: this.retrieve, loadedJson: this.getLoadedJsonForChild(name), interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden }));
       }
 
       for (var bulletListName in this.props.elementMap['bulletLists']) {
         var _properties4 = this.props.elementMap['bulletLists'][bulletListName];
-        bulletListElements.push(React.createElement(BulletList, { name: bulletListName, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: _properties4['maxBullets'], singleBulletList: false }));
+        bulletListElements.push(React.createElement(BulletList, { name: bulletListName, retrieve: this.retrieve, loadedJson: this.getLoadedJsonForChild(bulletListName), interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: _properties4['maxBullets'], singleBulletList: false }));
       }
 
       var wrappedBulletListElements = Category.fillGrid(bulletListElements);
