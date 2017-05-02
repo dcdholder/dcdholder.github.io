@@ -30,7 +30,7 @@ var Chart = function (_React$Component) {
     _this.retrieve = _this.retrieve.bind(_this);
 
     _this.tagLine = "The Ultimate QT Infograph";
-    _this.webVersion = "1.1 Alpha";
+    _this.webVersion = "2.0 Alpha";
     _this.chartVersion = "3.0";
 
     _this.adminEmail = 'qtprime@qtchart.com';
@@ -94,6 +94,8 @@ var Chart = function (_React$Component) {
       emptyElementsHidden: false
     };
 
+    _this.jsonLoadId = '';
+
     _this.userDataFromSessionCookie(_this.pageLoadHandler.bind(_this));
     return _this;
   }
@@ -102,15 +104,15 @@ var Chart = function (_React$Component) {
 
 
   _createClass(Chart, [{
-    key: "loadInJson",
-    value: function loadInJson(json) {
-      this.setState({ loadedJson: json });
-    }
-  }, {
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(targetName) {
       if (targetName.toLowerCase() in this.state.loadedJson) {
-        return this.state.loadedJson[targetName.toLowerCase()];
+        var jsonWithId = {};
+        jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
+        jsonWithId["id"] = this.jsonLoadId;
+        //console.log(jsonWithId);
+        console.log(jsonWithId);
+        return jsonWithId;
       } else {
         return {};
       }
@@ -195,8 +197,8 @@ var Chart = function (_React$Component) {
             }
 
             //whether 'you' or 'them', every MC CB in the set should be filled out
-            if (this.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
-              if (this.capitalize(elementName) in this.categoryMulticolorCheckboxMap[this.capitalize(categoryName)]) {
+            if (Chart.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
+              if (Chart.capitalize(elementName) in this.categoryMulticolorCheckboxMap[Chart.capitalize(categoryName)]) {
                 if (noneElementExists) {
                   missingElements[targetName][categoryName].push(elementName);
                   continue;
@@ -258,6 +260,7 @@ var Chart = function (_React$Component) {
   }, {
     key: "pageLoadHandler",
     value: function pageLoadHandler(initialData) {
+      this.jsonLoadId = Math.random();
       this.setState({ loadedJson: initialData });
     }
   }, {
@@ -290,7 +293,7 @@ var Chart = function (_React$Component) {
         httpRequest.setRequestHeader('Content-Type', 'application/json');
         //httpRequest.responseType = "text";
 
-        console.log(JSON.stringify({ "sessionId": localStorage.getItem("sessionId") }));
+        //console.log(JSON.stringify({"sessionId": localStorage.getItem("sessionId")}));
 
         var that = this;
         httpRequest.onreadystatechange = function () {
@@ -298,11 +301,11 @@ var Chart = function (_React$Component) {
             username = httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, "");
             that.userDataFromUsername(username, handler);
           } else if (httpRequest.status >= 400) {
-            //localStorage.removeItem("sessionId"); //TODO: uncomment these
+            localStorage.removeItem("sessionId"); //TODO: uncomment these
           }
         };
         httpRequest.onerror = function () {
-          //localStorage.removeItem("sessionId"); //TODO: uncomment these
+          localStorage.removeItem("sessionId"); //TODO: uncomment these
         };
         //httpRequest.send(JSON.stringify({"username": "username"}));
         httpRequest.send(JSON.stringify({ "sessionId": localStorage.getItem("sessionId") }));
@@ -322,7 +325,7 @@ var Chart = function (_React$Component) {
       var that = this;
       httpRequest.onreadystatechange = function () {
         if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
-          initialData = httpRequest.response;
+          initialData = JSON.parse(httpRequest.response);
           handler(initialData);
         } else if (httpRequest.status >= 400) {
           localStorage.removeItem("sessionId");
@@ -470,7 +473,7 @@ var Chart = function (_React$Component) {
       for (var targetName in missingElement) {
         for (var categoryName in missingElement[targetName]) {
           var elementName = missingElement[targetName][categoryName];
-          this.setState({ errorMessage: 'Missing field in \'' + this.capitalize(elementName) + '\' under \'' + this.capitalize(targetName) + '\' → \'' + this.capitalize(categoryName) + '\'', errorMessageDisplayMode: 'on' });
+          this.setState({ errorMessage: 'Missing field in \'' + Chart.capitalize(elementName) + '\' under \'' + Chart.capitalize(targetName) + '\' → \'' + Chart.capitalize(categoryName) + '\'', errorMessageDisplayMode: 'on' });
           return;
         }
       }
@@ -480,18 +483,6 @@ var Chart = function (_React$Component) {
     value: function showFailedRequestWarning(errorMessage) {
       this.setState({ errorMessage: errorMessage, errorMessageDisplayMode: 'on' });
       window.scrollTo(0, document.body.scrollHeight);
-    }
-  }, {
-    key: "capitalize",
-    value: function capitalize(string) {
-      var words = string.toLowerCase().split(' ');
-      for (var i = 0; i < words.length; i++) {
-        var letters = words[i].split('');
-        letters[0] = letters[0].toUpperCase();
-        words[i] = letters.join('');
-      }
-
-      return words.join(' ');
     }
   }, {
     key: "hideProcessingErrorWarning",
@@ -669,6 +660,18 @@ var Chart = function (_React$Component) {
       );
     }
   }], [{
+    key: "capitalize",
+    value: function capitalize(string) {
+      var words = string.toLowerCase().split(' ');
+      for (var i = 0; i < words.length; i++) {
+        var letters = words[i].split('');
+        letters[0] = letters[0].toUpperCase();
+        words[i] = letters.join('');
+      }
+
+      return words.join(' ');
+    }
+  }, {
     key: "webApiDomain",
     get: function get() {
       return 'http://web-api.qtchart.com';
@@ -873,8 +876,17 @@ var Target = function (_React$Component3) {
   _createClass(Target, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(categoryName) {
-      if (categoryName.toLowerCase() in this.props.loadedJson) {
-        return this.props.loadedJson[categoryName.toLowerCase()];
+      //console.log(this.props.loadedJson);
+      if (this.props.targetName.toLowerCase() in this.props.loadedJson) {
+        if (categoryName.toLowerCase() in this.props.loadedJson[this.props.targetName.toLowerCase()]) {
+          var jsonWithId = {};
+          jsonWithId[categoryName.toLowerCase()] = this.props.loadedJson[this.props.targetName.toLowerCase()][categoryName.toLowerCase()];
+          jsonWithId["id"] = this.props.loadedJson["id"];
+          //console.log(jsonWithId);
+          return jsonWithId;
+        } else {
+          return {};
+        }
       } else {
         return {};
       }
@@ -963,10 +975,18 @@ var Category = function (_React$Component4) {
   _createClass(Category, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(elementName) {
-      if (elementName.toLowerCase() in this.props.loadedJson) {
-        return this.props.loadedJson[elementName.toLowerCase()];
+      if (this.props.categoryName.toLowerCase() in this.props.loadedJson) {
+        if (elementName.toLowerCase() in this.props.loadedJson[this.props.categoryName.toLowerCase()]) {
+          var jsonWithId = {};
+          jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
+          jsonWithId["id"] = this.props.loadedJson["id"];
+          //console.log(jsonWithId);
+          return jsonWithId;
+        } else {
+          return {};
+        }
       } else {
-        return [];
+        return {};
       }
     }
   }, {
@@ -1157,10 +1177,19 @@ var MulticolorCheckboxSet = function (_React$Component5) {
   _createClass(MulticolorCheckboxSet, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(checkboxName) {
-      if (checkboxName.toLowerCase() in this.props.loadedJson) {
-        return this.props.loadedJson[checkboxName.toLowerCase()];
+      //console.log(this.props.loadedJson);
+      if (this.props.name.toLowerCase() in this.props.loadedJson) {
+        if (checkboxName.toLowerCase() in this.props.loadedJson[this.props.name.toLowerCase()]) {
+          var jsonWithId = {};
+          jsonWithId["id"] = this.props.loadedJson["id"];
+          jsonWithId[checkboxName.toLowerCase()] = this.props.loadedJson[this.props.name.toLowerCase()][checkboxName.toLowerCase()];
+          //console.log(jsonWithId);
+          return jsonWithId;
+        } else {
+          return {};
+        }
       } else {
-        return '';
+        return {};
       }
     }
   }, {
@@ -1309,6 +1338,8 @@ var MulticolorCheckbox = function (_React$Component6) {
       childColors[i] = MulticolorCheckbox.colorNames(i);
     }
 
+    _this8.loadedJsonKey = '';
+
     _this8.state = {
       footerInitial: footerInitial,
       footer: footer,
@@ -1399,7 +1430,18 @@ var MulticolorCheckbox = function (_React$Component6) {
           text = '';
         }
 
-        choices.push(React.createElement(CheckboxChoice, { key: MulticolorCheckbox.colorNames(i), targetName: this.props.targetName, categoryName: this.props.categoryName, name: this.props.name, label: this.props.label, side: side, colorName: this.state.childColors[i], text: text, value: i, onClick: this.makeSelection, percentWidth: percentWidth, textHidden: true, hoverText: this.state.descriptors[i], loadedJson: this.props.loadedJson[i], interactionFrozen: this.props.interactionFrozen }));
+        var color = this.state.childColors[i];
+        //console.log(this.props.loadedJson['id']);
+        //console.log(this.props.loadedJson[this.props.label.toLowerCase()]);
+        //console.log(this.loadedJsonKey);
+        if (this.props.loadedJson['id'] != this.loadedJsonKey) {
+          if (this.props.loadedJson[this.props.label.toLowerCase()] == i) {
+            color = 'black';
+            this.loadedJsonKey = this.props.loadedJson['id'];
+          }
+        }
+
+        choices.push(React.createElement(CheckboxChoice, { key: MulticolorCheckbox.colorNames(i), targetName: this.props.targetName, categoryName: this.props.categoryName, name: this.props.name, label: this.props.label, side: side, colorName: color, text: text, value: i, onClick: this.makeSelection, percentWidth: percentWidth, textHidden: true, hoverText: this.state.descriptors[i], interactionFrozen: this.props.interactionFrozen }));
       }
 
       //TODO: the extra line breaks here are a hideous kludge
@@ -1517,6 +1559,15 @@ var ColorSelectBar = function (_React$Component9) {
       }
 
       return 'none';
+    }
+  }, {
+    key: "colorFromScore",
+    value: function colorFromScore(score) {
+      if (score == "none") {
+        return "white";
+      } else {
+        return ColorSelectBar.colors[score];
+      }
     }
   }, {
     key: "colors",
@@ -2006,8 +2057,31 @@ var SingleColorYou2DCheckboxSet = function (_React$Component15) {
       return rowContents;
     }
   }, {
+    key: "componentWillReceiveProps",
+    value: function componentWillReceiveProps(nextProps) {
+
+      //if fresh loadedJson is on its way, clear the old contents and replace with the new
+      if (nextProps.loadedJson['id'] != this.props.loadedJson['id']) {
+        var newColors = [];
+        for (var j = 0; j < this.props.cellDimensions; j++) {
+          newColors[j] = [];
+          for (var i = 0; i < this.props.cellDimensions; i++) {
+            newColors[j][i] = 'white';
+          }
+        }
+
+        for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+          var trueIndices = index.split(",");
+          newColors[trueIndices[0]][trueIndices[1]] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
+        }
+
+        this.setState({ optionColors: newColors });
+      }
+    }
+  }, {
     key: "render",
     value: function render() {
+      //console.log(this.props.loadedJson);
       this.props.retrieve(this.toJson());
 
       var hidden = false;
@@ -2202,6 +2276,37 @@ var SingleColorYouCheckboxSet = function (_React$Component16) {
         newOptionColors[i] = 'white';
       }
       this.setState({ optionColors: newOptionColors });
+    }
+  }, {
+    key: "componentWillReceiveProps",
+    value: function componentWillReceiveProps(nextProps) {
+      //if fresh loadedJson is on its way, clear the old contents and replace with the new
+      if (nextProps.loadedJson['id'] != this.props.loadedJson['id']) {
+        var newColors = [];
+        for (var i = 0; i < this.props.possibleOptions.length; i++) {
+          newColors[i] = 'white';
+        }
+
+        if (nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+          if (nextProps.loadedJson[nextProps.name.toLowerCase()][0] != undefined) {
+            for (var _i = 0; _i < nextProps.possibleOptions.length; _i++) {
+              newColors[_i] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][_i]);
+            }
+          } else {
+            for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+              var capitalizedIndex = Chart.capitalize(index);
+              if (index == "mtf" || index == "ftm") {
+                //workaround for MTF and FTM
+                capitalizedIndex = index.toUpperCase();
+              }
+              var numericalIndex = nextProps.possibleOptions.indexOf(capitalizedIndex);
+              newColors[numericalIndex] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
+            }
+          }
+        }
+
+        this.setState({ optionColors: newColors });
+      }
     }
   }, {
     key: "render",
@@ -2550,6 +2655,25 @@ var BulletList = function (_React$Component20) {
       return this.state.bulletContents == [];
     }
   }, {
+    key: "componentWillReceiveProps",
+    value: function componentWillReceiveProps(nextProps) {
+      //if fresh loadedJson is on its way, clear the old contents and replace with the new
+      if (nextProps.loadedJson['id'] != this.props.loadedJson['id']) {
+        var bulletContents = [];
+
+        console.log(nextProps.loadedJson);
+        if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string") {
+          bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
+        } else {
+          for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+            bulletContents[index] = nextProps.loadedJson[nextProps.name.toLowerCase()][index];
+          }
+        }
+
+        this.setState({ bulletContents: bulletContents });
+      }
+    }
+  }, {
     key: "render",
     value: function render() {
       //ugly hack to force remount only after closing bullet (by switching to a new set of keys)
@@ -2639,7 +2763,7 @@ var SingleBulletList = function (_React$Component21) {
   }, {
     key: "render",
     value: function render() {
-      return React.createElement(BulletList, { name: this.props.name, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: 1, singleBulletList: true });
+      return React.createElement(BulletList, { name: this.props.name, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: 1, singleBulletList: true, loadedJson: this.props.loadedJson });
     }
   }]);
 
