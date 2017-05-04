@@ -6,7 +6,7 @@ class Chart extends React.Component {
   constructor (props) { //TODO: change this to a yaml parser when you're done testing out the basic UI
     super(props);
 
-    this.developmentMode = true;
+    this.developmentMode = false;
 
     this.json = {};
 
@@ -19,6 +19,10 @@ class Chart extends React.Component {
     this.adminEmail = 'qtprime@qtchart.com';
 
     this.requestChartImage = this.requestChartImage.bind(this);
+    this.pageLoadHandler   = this.pageLoadHandler.bind(this);
+
+    this.createPage = this.createPage.bind(this);
+    this.login      = this.login.bind(this);
 
     //TODO: I'm planning on rolling the field format generation into the back-end, these hard-coded lists will disappear
     this.categoryMulticolorCheckboxMap = {'Emotional': {'Quirks':
@@ -83,7 +87,7 @@ class Chart extends React.Component {
 
     this.jsonLoadId = '';
 
-    this.userDataFromSessionCookie(this.pageLoadHandler.bind(this));
+    this.userDataFromSessionCookie(this.pageLoadHandler);
   }
 
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
@@ -109,7 +113,6 @@ class Chart extends React.Component {
       jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
       jsonWithId["id"] = this.jsonLoadId;
       //console.log(jsonWithId);
-      console.log(jsonWithId);
       return jsonWithId;
     } else {
       return {};
@@ -251,8 +254,8 @@ class Chart extends React.Component {
     this.setState({loadedJson: initialData});
   }
 
-  createPage(username,password) {
-    this.createPageServerSide(username,password,this.json);
+  createPage(username,password,successHandler,failureHandler) {
+    this.createPageServerSide(username,password,this.json,successHandler,failureHandler);
   }
 
   deleteUser(username,password) {
@@ -319,7 +322,7 @@ class Chart extends React.Component {
     httpRequest.send(JSON.stringify({'username': username}));
   }
 
-  createPageServerSide(username,password,userData) {
+  createPageServerSide(username,password,userData,successHandler,failureHandler) {
     var httpRequest = new XMLHttpRequest();
 
     httpRequest.open('POST', Chart.userCreationRequestUri, true);
@@ -330,12 +333,13 @@ class Chart extends React.Component {
     httpRequest.onreadystatechange = function() {
       if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+        successHandler();
       } else if (httpRequest.status>=400) {
-        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+        failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
-      that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password, "userData": userData}));
   }
@@ -354,7 +358,7 @@ class Chart extends React.Component {
     httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem('sessionId')}));
   }
 
-  login(username,password,handler) {
+  login(username,password,pageLoadHandler,successHandler,failureHandler) {
     localStorage.removeItem('sessionId');
     this.setDisplayMode('visitor'); //disable further editing while we load the user's saved data
 
@@ -369,13 +373,14 @@ class Chart extends React.Component {
     httpRequest.onreadystatechange = function() {
       if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
-        that.userDataFromSessionCookie(handler);
+        successHandler();
+        that.userDataFromSessionCookie(pageLoadHandler);
       } else if (httpRequest.status>=400) {
-        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+        failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
-      that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password}));
     this.setDisplayMode('owner');
@@ -539,17 +544,16 @@ class Chart extends React.Component {
 
     var footerButtons = [];
     footerButtons.push(<button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>);
+    footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
+    footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
+    footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {$('#registerModal').modal('show');}}>Reg Modal</button>);
+    footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {$('#loginModal').modal('show');}}>Log Modal</button>);
+
     if (this.developmentMode) {
       footerButtons.push(<button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>);
       footerButtons.push(<button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>);
-      footerButtons.push(<button type="button" name="createUserA" onClick={() => {this.createPage("testusera","password",this.json)}}>CreateUserA</button>);
-      footerButtons.push(<button type="button" name="createUserB" onClick={() => {this.createPage("testuserb","password",this.json)}}>CreateUserB</button>);
-      footerButtons.push(<button type="button" name="loginUserA" onClick={() => {this.login("testusera","password",this.pageLoadHandler.bind(this))}}>LoginUserA</button>);
-      footerButtons.push(<button type="button" name="loginUserB" onClick={() => {this.login("testuserb","password",this.pageLoadHandler.bind(this))}}>LoginUserB</button>);
       footerButtons.push(<button type="button" name="deleteUserA" onClick={() => this.deleteUser("testusera","password")}>DeleteUserA</button>);
       footerButtons.push(<button type="button" name="deleteUserB" onClick={() => this.deleteUser("testuserb","password")}>DeleteUserB</button>);
-      footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
-      footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
     }
 
     return (
@@ -557,10 +561,77 @@ class Chart extends React.Component {
         <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
         {targets}
         <div className="chartFooter">
+          <LoginRegisterModal modalType={'login'} loginOrRegister={this.login} pageLoadHandler={this.pageLoadHandler} />
+          <LoginRegisterModal modalType={'register'} loginOrRegister={this.createPage} pageLoadHandler={this.pageLoadHandler} />
           <div className="footerButtons">
             {footerButtons}
           </div>
           <div className={'errorMessage ' + this.state.errorMessageDisplayMode}>{this.state.errorMessage}</div>
+        </div>
+      </div>
+    );
+  }
+}
+
+//TODO: the modal needs to define its own handler for login / registration (so that it can display the right messages)
+//props: modalType, loginOrRegister (handler)
+class LoginRegisterModal extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.username = '';
+    this.password = '';
+
+    this.loginRegistrationFailureHandler = this.loginRegistrationFailureHandler.bind(this);
+    this.loginRegistrationSuccessHandler = this.loginRegistrationSuccessHandler.bind(this);
+
+    this.state = {
+      warningMessage: ''
+    };
+  }
+
+  usernameChangeHandler(event) {
+    this.username = event.target.value;
+  }
+
+  passwordChangeHandler(event) {
+    this.password = event.target.value;
+  }
+
+  loginRegistrationFailureHandler(responseText) {
+    this.setState({warningMessage: 'Can\'t ' + this.props.modalType + ' - ' + responseText});
+  }
+
+  loginRegistrationSuccessHandler() {
+    this.close();
+  }
+
+  close() {
+    $('#' + this.props.modalType + "Modal").modal('toggle');
+  }
+
+  render() {
+    var requestButtonJsx;
+    if(this.props.modalType=="login") {
+      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
+    } else if (this.props.modalType=="register") {
+      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.props.pageLoadHandler, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
+    }
+
+    return (
+      <div className="modal fade" id={this.props.modalType + "Modal"} tabindex="-1" role="dialog" aria-labelledby={this.props.modalType + "ModalAria"} aria-hidden="true">
+        <div className="modal-dialog" role="document">
+          <div className="modal-body">
+            <h4 className="modal-title" id={this.props.modalType + "ModalAria"}>{Chart.capitalize(this.props.modalType)}</h4>
+            <input type="text" name="username" placeholder="Username" onChange={(event) => {this.usernameChangeHandler(event)}} />
+            <input type="text" name="password" placeholder="Password" onChange={(event) => {this.passwordChangeHandler(event)}} />
+
+            <div className="modal-footer">
+              <button name="close" onClick={() => this.close()}>Close</button>
+              {requestButtonJsx}
+              {this.state.warningMessage}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1936,7 +2007,6 @@ class BulletList extends React.Component {
     if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
       var bulletContents = [];
 
-      console.log(nextProps.loadedJson);
       if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string") {
         bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
       } else {
