@@ -108,6 +108,7 @@ class Chart extends React.Component {
   static get generateAnimationTick() {return 1000; }
 
   getLoadedJsonForChild(targetName) {
+    console.log(this.state.loadedJson);
     if (targetName.toLowerCase() in this.state.loadedJson) {
       var jsonWithId = {};
       jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
@@ -620,16 +621,29 @@ class LoginRegisterModal extends React.Component {
 
     return (
       <div className="modal fade" id={this.props.modalType + "Modal"} tabindex="-1" role="dialog" aria-labelledby={this.props.modalType + "ModalAria"} aria-hidden="true">
-        <div className="modal-dialog" role="document">
-          <div className="modal-body">
-            <h4 className="modal-title" id={this.props.modalType + "ModalAria"}>{Chart.capitalize(this.props.modalType)}</h4>
-            <input type="text" name="username" placeholder="Username" onChange={(event) => {this.usernameChangeHandler(event)}} />
-            <input type="text" name="password" placeholder="Password" onChange={(event) => {this.passwordChangeHandler(event)}} />
+        <div className="modal-dialog modal-sm" role="document">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4 className="modal-title" id={this.props.modalType + "ModalAria"}>{Chart.capitalize(this.props.modalType)}</h4>
+            </div>
+
+            <div className="modal-body">
+              <div>
+                <label>Username: <input type="text" name="username" onChange={(event) => {this.usernameChangeHandler(event)}} /></label>
+              </div>
+              <div>
+                <label>Password: <input type="text" name="password" onChange={(event) => {this.passwordChangeHandler(event)}} /></label>
+              </div>
+            </div>
 
             <div className="modal-footer">
-              <button name="close" onClick={() => this.close()}>Close</button>
-              {requestButtonJsx}
-              {this.state.warningMessage}
+              <div>
+                <button name="close" onClick={() => this.close()}>Close</button>
+                {requestButtonJsx}
+              </div>
+              <div>
+                {this.state.warningMessage}
+              </div>
             </div>
           </div>
         </div>

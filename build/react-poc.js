@@ -110,6 +110,7 @@ var Chart = function (_React$Component) {
   _createClass(Chart, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(targetName) {
+      console.log(this.state.loadedJson);
       if (targetName.toLowerCase() in this.state.loadedJson) {
         var jsonWithId = {};
         jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
@@ -808,33 +809,67 @@ var LoginRegisterModal = function (_React$Component2) {
         { className: "modal fade", id: this.props.modalType + "Modal", tabindex: "-1", role: "dialog", "aria-labelledby": this.props.modalType + "ModalAria", "aria-hidden": "true" },
         React.createElement(
           "div",
-          { className: "modal-dialog", role: "document" },
+          { className: "modal-dialog modal-sm", role: "document" },
           React.createElement(
             "div",
-            { className: "modal-body" },
+            { className: "modal-content" },
             React.createElement(
-              "h4",
-              { className: "modal-title", id: this.props.modalType + "ModalAria" },
-              Chart.capitalize(this.props.modalType)
+              "div",
+              { className: "modal-header" },
+              React.createElement(
+                "h4",
+                { className: "modal-title", id: this.props.modalType + "ModalAria" },
+                Chart.capitalize(this.props.modalType)
+              )
             ),
-            React.createElement("input", { type: "text", name: "username", placeholder: "Username", onChange: function onChange(event) {
-                _this4.usernameChangeHandler(event);
-              } }),
-            React.createElement("input", { type: "text", name: "password", placeholder: "Password", onChange: function onChange(event) {
-                _this4.passwordChangeHandler(event);
-              } }),
+            React.createElement(
+              "div",
+              { className: "modal-body" },
+              React.createElement(
+                "div",
+                null,
+                React.createElement(
+                  "label",
+                  null,
+                  "Username: ",
+                  React.createElement("input", { type: "text", name: "username", onChange: function onChange(event) {
+                      _this4.usernameChangeHandler(event);
+                    } })
+                )
+              ),
+              React.createElement(
+                "div",
+                null,
+                React.createElement(
+                  "label",
+                  null,
+                  "Password: ",
+                  React.createElement("input", { type: "text", name: "password", onChange: function onChange(event) {
+                      _this4.passwordChangeHandler(event);
+                    } })
+                )
+              )
+            ),
             React.createElement(
               "div",
               { className: "modal-footer" },
               React.createElement(
-                "button",
-                { name: "close", onClick: function onClick() {
-                    return _this4.close();
-                  } },
-                "Close"
+                "div",
+                null,
+                React.createElement(
+                  "button",
+                  { name: "close", onClick: function onClick() {
+                      return _this4.close();
+                    } },
+                  "Close"
+                ),
+                requestButtonJsx
               ),
-              requestButtonJsx,
-              this.state.warningMessage
+              React.createElement(
+                "div",
+                null,
+                this.state.warningMessage
+              )
             )
           )
         )
