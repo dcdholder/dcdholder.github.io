@@ -566,16 +566,21 @@ table {
   vertical-align:top;
 }
 
-.chartVersionTd {
-  text-align:right;
-}
-
-.webVersionTd {
-  text-align:right;
-}
-
 .paddingTd {
   height: 10px;
+}
+
+.otherInfo {
+  float: right;
+}
+
+.cornerButtons {
+  float: right;
+}
+
+.buttonSpacingDiv {
+  width: 4px;
+  display: inline-block;
 }
 
 .chartName td h1 {

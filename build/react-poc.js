@@ -33,7 +33,7 @@ var Chart = function (_React$Component) {
     _this.webVersion = "2.0 Alpha";
     _this.chartVersion = "3.0";
 
-    _this.adminEmail = 'qtprime@qtchart.com';
+    _this.contactInfo = 'qtprime@qtchart.com';
 
     _this.requestChartImage = _this.requestChartImage.bind(_this);
     _this.pageLoadHandler = _this.pageLoadHandler.bind(_this);
@@ -100,7 +100,24 @@ var Chart = function (_React$Component) {
 
     _this.jsonLoadId = '';
 
-    _this.userDataFromSessionCookie(_this.pageLoadHandler);
+    var restParams = new URLSearchParams(window.location.search.slice(1));
+
+    if (restParams.has("user")) {
+      var username = restParams.get("user");
+
+      _this.userDataFromUsername(username, _this.pageLoadHandler);
+      _this.state.viewerType = "visitor";
+      _this.state.username = username;
+    } else {
+      _this.userDataFromSessionCookie(_this.pageLoadHandler);
+      _this.state.viewerType = "owner";
+      _this.state.username = '';
+    }
+
+    if (_this.state.viewerType == "visitor") {
+      _this.state.interactionFrozen = true;
+      _this.state.emptyElementsHidden = true;
+    }
     return _this;
   }
 
@@ -555,6 +572,16 @@ var Chart = function (_React$Component) {
       httpRequest.send(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
     }
   }, {
+    key: "openLoginPrompt",
+    value: function openLoginPrompt() {
+      $('#loginModal').modal('show');
+    }
+  }, {
+    key: "openRegisterPrompt",
+    value: function openRegisterPrompt() {
+      $('#registerModal').modal('show');
+    }
+  }, {
     key: "render",
     value: function render() {
       var _this2 = this;
@@ -562,7 +589,7 @@ var Chart = function (_React$Component) {
       var targets = [];
       var possibleTargets = ["You", "Them"];
       for (var i = 0; i < possibleTargets.length; i++) {
-        targets.push(React.createElement(Target, { key: possibleTargets[i], targetName: possibleTargets[i], categoryElementMap: this.categoryElementMap, retrieve: this.retrieve, loadedJson: this.getLoadedJsonForChild(possibleTargets[i]), interactionFrozen: this.state.interactionFrozen, emptyElementsHidden: this.state.emptyElementsHidden }));
+        targets.push(React.createElement(Target, { key: possibleTargets[i], targetName: possibleTargets[i], username: this.state.username, categoryElementMap: this.categoryElementMap, retrieve: this.retrieve, loadedJson: this.getLoadedJsonForChild(possibleTargets[i]), interactionFrozen: this.state.interactionFrozen, emptyElementsHidden: this.state.emptyElementsHidden }));
       }
 
       var footerButtons = [];
@@ -588,14 +615,14 @@ var Chart = function (_React$Component) {
       footerButtons.push(React.createElement(
         "button",
         { type: "button", name: "registerModalButton", onClick: function onClick() {
-            $('#registerModal').modal('show');
+            _this2.openRegisterPrompt();
           } },
         "Reg Modal"
       ));
       footerButtons.push(React.createElement(
         "button",
         { type: "button", name: "loginModalButton", onClick: function onClick() {
-            $('#loginModal').modal('show');
+            _this2.openLoginPrompt();
           } },
         "Log Modal"
       ));
@@ -634,7 +661,7 @@ var Chart = function (_React$Component) {
       return React.createElement(
         "div",
         { className: "chart fillSmallScreen" },
-        React.createElement(ChartName, { webVersion: this.webVersion, chartVersion: this.chartVersion }),
+        React.createElement(ChartName, { webVersion: this.webVersion, contactInfo: this.contactInfo, viewerType: this.state.viewerType, loggedIn: this.state.loggedIn, logout: this.logout, openLoginPrompt: this.openLoginPrompt }),
         targets,
         React.createElement(
           "div",
@@ -880,6 +907,9 @@ var LoginRegisterModal = function (_React$Component2) {
   return LoginRegisterModal;
 }(React.Component);
 
+//props: webVersion, contactInfo, baseUrl, viewerType, loggedIn, logout(), openLoginPrompt()
+
+
 var ChartName = function (_React$Component3) {
   _inherits(ChartName, _React$Component3);
 
@@ -892,6 +922,75 @@ var ChartName = function (_React$Component3) {
   _createClass(ChartName, [{
     key: "render",
     value: function render() {
+      var _this6 = this;
+
+      var buttonA;
+      var buttonB;
+
+      if (this.props.viewerType == "visitor") {
+        if (this.props.loggedIn) {
+          buttonA = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                window.location.href = window.location.protocol + '//' + window.location.host;
+              } },
+            "Your\xA0Page"
+          );
+          buttonB = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                _this6.props.logout();
+              } },
+            "Logout"
+          );
+        } else {
+          buttonA = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                window.location.href = window.location.protocol + '//' + window.location.host;
+              } },
+            "New\xA0Chart"
+          );
+          buttonB = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                _this6.props.openLoginPrompt();
+              } },
+            "Login"
+          );
+        }
+      } else if (this.props.viewerType == "owner") {
+        if (this.props.loggedIn) {
+          buttonB = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                _this6.props.logout();
+              } },
+            "Logout"
+          );
+        } else {
+          buttonB = React.createElement(
+            "button",
+            { onClick: function onClick() {
+                _this6.props.logout();window.location.href = window.location.protocol + '//' + window.location.host;
+              } },
+            "Login"
+          );
+        }
+        buttonA = '';
+      }
+
+      var buttons = [];
+      if (buttonA != '') {
+        buttons.push(buttonA);
+      }
+      if (buttonA != '' && buttonB != '') {
+        buttons.push(React.createElement("div", { className: "buttonSpacingDiv" }));
+      }
+      if (buttonB != '') {
+        buttons.push(buttonB);
+      }
+
       return React.createElement(
         "div",
         { className: "chartName" },
@@ -944,7 +1043,7 @@ var ChartName = function (_React$Component3) {
         ),
         React.createElement(
           "div",
-          { className: "versionInfo" },
+          { className: "otherInfo" },
           React.createElement(
             "table",
             null,
@@ -956,17 +1055,8 @@ var ChartName = function (_React$Component3) {
                 null,
                 React.createElement(
                   "td",
-                  { colSpan: "2", className: "paddingTd" },
-                  "\xA0"
-                )
-              ),
-              React.createElement(
-                "tr",
-                null,
-                React.createElement(
-                  "td",
                   { className: "webVersionTd" },
-                  "Web Version:\xA0"
+                  "Site Version:\xA0"
                 ),
                 React.createElement(
                   "td",
@@ -979,13 +1069,26 @@ var ChartName = function (_React$Component3) {
                 null,
                 React.createElement(
                   "td",
-                  { className: "chartVersionTd" },
-                  "Chart Version:\xA0"
+                  { className: "contactInfoTd" },
+                  "Contact:\xA0"
                 ),
                 React.createElement(
                   "td",
-                  { className: "versionNumber" },
-                  this.props.chartVersion
+                  { className: "contactInfo" },
+                  this.props.contactInfo
+                )
+              ),
+              React.createElement(
+                "tr",
+                null,
+                React.createElement(
+                  "td",
+                  { className: "buttonTd", colSpan: 2 },
+                  React.createElement(
+                    "div",
+                    { className: "cornerButtons" },
+                    buttons
+                  )
                 )
               )
             )
@@ -1004,17 +1107,17 @@ var Target = function (_React$Component4) {
   function Target(props) {
     _classCallCheck(this, Target);
 
-    var _this6 = _possibleConstructorReturn(this, (Target.__proto__ || Object.getPrototypeOf(Target)).call(this, props));
+    var _this7 = _possibleConstructorReturn(this, (Target.__proto__ || Object.getPrototypeOf(Target)).call(this, props));
 
-    _this6.json = {};
-    _this6.json[_this6.props.targetName.toLowerCase()] = {};
+    _this7.json = {};
+    _this7.json[_this7.props.targetName.toLowerCase()] = {};
 
-    _this6.retrieve = _this6.retrieve.bind(_this6);
+    _this7.retrieve = _this7.retrieve.bind(_this7);
 
-    if (_this6.props.targetName.toLowerCase() != "you" && _this6.props.targetName.toLowerCase() != "them") {
-      throw "Target must be either \'You\' or \'Them\', received: " + _this6.props.targetName;
+    if (_this7.props.targetName.toLowerCase() != "you" && _this7.props.targetName.toLowerCase() != "them") {
+      throw "Target must be either \'You\' or \'Them\', received: " + _this7.props.targetName;
     }
-    return _this6;
+    return _this7;
   }
 
   _createClass(Target, [{
@@ -1070,21 +1173,35 @@ var Target = function (_React$Component4) {
         categories.push(React.createElement(Category, { key: finalCategoryName, targetName: this.props.targetName, categoryName: finalCategoryName, elementMap: elementMapByCategoryByType[finalCategoryName], retrieve: this.retrieve, loadedJson: this.getLoadedJsonForChild(finalCategoryName), interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden }));
       }
 
+      var targetTitle = React.createElement(
+        "h2",
+        null,
+        React.createElement(
+          "b",
+          null,
+          this.props.targetName
+        )
+      );
+      if (this.props.targetName.toLowerCase() == "you" && this.props.username != '') {
+        targetTitle = React.createElement(
+          "h2",
+          null,
+          React.createElement(
+            "b",
+            null,
+            this.props.targetName + ': '
+          ),
+          '(' + this.props.username + ')'
+        );
+      }
+
       return React.createElement(
         "div",
         { className: "target" },
         React.createElement(
           "div",
           { className: "targetName" },
-          React.createElement(
-            "h2",
-            null,
-            React.createElement(
-              "b",
-              null,
-              this.props.targetName
-            )
-          )
+          targetTitle
         ),
         React.createElement(
           "div",
@@ -1104,16 +1221,16 @@ var Category = function (_React$Component5) {
   function Category(props) {
     _classCallCheck(this, Category);
 
-    var _this7 = _possibleConstructorReturn(this, (Category.__proto__ || Object.getPrototypeOf(Category)).call(this, props));
+    var _this8 = _possibleConstructorReturn(this, (Category.__proto__ || Object.getPrototypeOf(Category)).call(this, props));
 
-    _this7.json = {};
-    _this7.json[_this7.props.categoryName.toLowerCase()] = {};
+    _this8.json = {};
+    _this8.json[_this8.props.categoryName.toLowerCase()] = {};
 
-    _this7.retrieve = _this7.retrieve.bind(_this7);
+    _this8.retrieve = _this8.retrieve.bind(_this8);
 
-    _this7.detailsOpen = true;
-    _this7.categoryDetailsManipulable = true;
-    return _this7;
+    _this8.detailsOpen = true;
+    _this8.categoryDetailsManipulable = true;
+    return _this8;
   }
 
   _createClass(Category, [{
@@ -1145,17 +1262,20 @@ var Category = function (_React$Component5) {
     key: "nothingSelected",
     value: function nothingSelected() {
       //returns true immediately on page load
-      for (var categoryName in this.json) {
-        for (var elementName in this.json[categoryName]) {
-          for (var subelementName in this.json[categoryName][elementName]) {
-            if (this.json[categoryName][elementName][subelementName] != 'none') {
-              return false;
+      if (this.loadedJson == {}) {
+        for (var categoryName in this.json) {
+          for (var elementName in this.json[categoryName]) {
+            for (var subelementName in this.json[categoryName][elementName]) {
+              if (this.json[categoryName][elementName][subelementName] != 'none') {
+                return false;
+              }
             }
           }
         }
+        return true;
+      } else {
+        return false;
       }
-
-      return true;
     }
   }, {
     key: "handleCategoryDetailsOpen",
@@ -1169,7 +1289,7 @@ var Category = function (_React$Component5) {
   }, {
     key: "render",
     value: function render() {
-      var _this8 = this;
+      var _this9 = this;
 
       if (this.props.emptyElementsHidden && this.nothingSelected()) {
         this.categoryDetailsManipulable = false;
@@ -1251,7 +1371,7 @@ var Category = function (_React$Component5) {
       return React.createElement(
         "details",
         { className: "category", open: this.detailsOpen, onClick: function onClick(event) {
-            _this8.handleCategoryDetailsOpen(event);
+            _this9.handleCategoryDetailsOpen(event);
           }, name: this.props.categoryName.toLowerCase() },
         nameContents,
         bodyContents
@@ -1309,13 +1429,13 @@ var MulticolorCheckboxSet = function (_React$Component6) {
   function MulticolorCheckboxSet(props) {
     _classCallCheck(this, MulticolorCheckboxSet);
 
-    var _this9 = _possibleConstructorReturn(this, (MulticolorCheckboxSet.__proto__ || Object.getPrototypeOf(MulticolorCheckboxSet)).call(this, props));
+    var _this10 = _possibleConstructorReturn(this, (MulticolorCheckboxSet.__proto__ || Object.getPrototypeOf(MulticolorCheckboxSet)).call(this, props));
 
-    _this9.json = {};
-    _this9.json[_this9.props.name.toLowerCase()] = {};
+    _this10.json = {};
+    _this10.json[_this10.props.name.toLowerCase()] = {};
 
-    _this9.retrieve = _this9.retrieve.bind(_this9);
-    return _this9;
+    _this10.retrieve = _this10.retrieve.bind(_this10);
+    return _this10;
   }
 
   _createClass(MulticolorCheckboxSet, [{
@@ -1452,27 +1572,27 @@ var MulticolorCheckbox = function (_React$Component7) {
   function MulticolorCheckbox(props) {
     _classCallCheck(this, MulticolorCheckbox);
 
-    var _this10 = _possibleConstructorReturn(this, (MulticolorCheckbox.__proto__ || Object.getPrototypeOf(MulticolorCheckbox)).call(this, props));
+    var _this11 = _possibleConstructorReturn(this, (MulticolorCheckbox.__proto__ || Object.getPrototypeOf(MulticolorCheckbox)).call(this, props));
 
-    _this10.makeSelection = _this10.makeSelection.bind(_this10); //ensure callbacks have the proper context
-    _this10.reset = _this10.reset.bind(_this10);
+    _this11.makeSelection = _this11.makeSelection.bind(_this11); //ensure callbacks have the proper context
+    _this11.reset = _this11.reset.bind(_this11);
 
     var descriptors = [];
     var footerInitial;
     var footer;
-    if (_this10.props.targetName.toLowerCase() == 'you' && !_this10.props.pickOneIfYou || _this10.props.targetName.toLowerCase() == 'them') {
-      if (_this10.props.targetName.toLowerCase() == 'you') {
+    if (_this11.props.targetName.toLowerCase() == 'you' && !_this11.props.pickOneIfYou || _this11.props.targetName.toLowerCase() == 'them') {
+      if (_this11.props.targetName.toLowerCase() == 'you') {
         //present all colors except pink
-        _this10.defaultFooter = 'How well does this describe you?';
+        _this11.defaultFooter = 'How well does this describe you?';
         descriptors = MulticolorCheckbox.youMulticolorLabels;
         footerInitial = 'This describes me';
       } else {
         //present all colors including pink
-        _this10.defaultFooter = 'How important is this in others?';
+        _this11.defaultFooter = 'How important is this in others?';
         descriptors = MulticolorCheckbox.themMulticolorLabels;
         footerInitial = 'I consider this';
       }
-      footer = _this10.defaultFooter;
+      footer = _this11.defaultFooter;
     } else {
       throw "Multicolor checkboxes cannot be \'pick one\'.";
     }
@@ -1482,15 +1602,15 @@ var MulticolorCheckbox = function (_React$Component7) {
       childColors[i] = MulticolorCheckbox.colorNames(i);
     }
 
-    _this10.loadedJsonKey = '';
+    _this11.loadedJsonKey = '';
 
-    _this10.state = {
+    _this11.state = {
       footerInitial: footerInitial,
       footer: footer,
       descriptors: descriptors,
       childColors: childColors
     };
-    return _this10;
+    return _this11;
   }
 
   //TODO: should not be dependent on the color of the selected cell; add state
@@ -1620,7 +1740,7 @@ var CheckboxChoice = function (_React$Component8) {
   _createClass(CheckboxChoice, [{
     key: "render",
     value: function render() {
-      var _this12 = this;
+      var _this13 = this;
 
       var extraClasses = 'hoverable';
       if (this.props.interactionFrozen) {
@@ -1632,7 +1752,7 @@ var CheckboxChoice = function (_React$Component8) {
           "label",
           { className: 'checkboxChoice' + ' ' + this.props.colorName + ' ' + this.props.side + ' ' + extraClasses, style: { width: this.props.percentWidth + "%" }, title: this.props.hoverText },
           React.createElement("input", { type: "radio", value: this.props.value, onClick: function onClick() {
-              return _this12.props.onClick(_this12.props.value);
+              return _this13.props.onClick(_this13.props.value);
             } }),
           React.createElement(
             "span",
@@ -1662,7 +1782,7 @@ var ColorSelectChoice = function (_React$Component9) {
   _createClass(ColorSelectChoice, [{
     key: "render",
     value: function render() {
-      var _this14 = this;
+      var _this15 = this;
 
       var activeBorder = '';
       if (this.props.activeBorder) {
@@ -1673,7 +1793,7 @@ var ColorSelectChoice = function (_React$Component9) {
         "label",
         { className: 'colorSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + activeBorder, title: this.props.hoverText },
         React.createElement("input", { type: "radio", onClick: function onClick() {
-            _this14.props.onClick[0](_this14.props.color);_this14.props.onClick[1](_this14.props.color);
+            _this15.props.onClick[0](_this15.props.color);_this15.props.onClick[1](_this15.props.color);
           } }),
         React.createElement(
           "span",
@@ -1728,14 +1848,14 @@ var ColorSelectBar = function (_React$Component10) {
   function ColorSelectBar(props) {
     _classCallCheck(this, ColorSelectBar);
 
-    var _this15 = _possibleConstructorReturn(this, (ColorSelectBar.__proto__ || Object.getPrototypeOf(ColorSelectBar)).call(this, props));
+    var _this16 = _possibleConstructorReturn(this, (ColorSelectBar.__proto__ || Object.getPrototypeOf(ColorSelectBar)).call(this, props));
 
-    _this15.frameColorSelection = _this15.frameColorSelection.bind(_this15);
+    _this16.frameColorSelection = _this16.frameColorSelection.bind(_this16);
 
-    _this15.state = {
+    _this16.state = {
       selectedColor: 'none'
     };
-    return _this15;
+    return _this16;
   }
 
   _createClass(ColorSelectBar, [{
@@ -1805,7 +1925,7 @@ var CheckboxSelectChoice = function (_React$Component11) {
   _createClass(CheckboxSelectChoice, [{
     key: "render",
     value: function render() {
-      var _this17 = this;
+      var _this18 = this;
 
       var extraClasses = 'hoverable';
       if (this.props.interactionFrozen) {
@@ -1815,7 +1935,7 @@ var CheckboxSelectChoice = function (_React$Component11) {
       return React.createElement(
         "div",
         { className: 'checkboxSelectChoice ' + this.props.color + ' ' + this.props.position + ' ' + extraClasses, onClick: function onClick() {
-            return _this17.props.onClick(_this17.props.index);
+            return _this18.props.onClick(_this18.props.index);
           } },
         React.createElement(
           "span",
@@ -1991,7 +2111,7 @@ var ResetButton = function (_React$Component15) {
   _createClass(ResetButton, [{
     key: "render",
     value: function render() {
-      var _this22 = this;
+      var _this23 = this;
 
       var displayStyle = 'inline-block';
       if (this.props.interactionFrozen) {
@@ -2013,7 +2133,7 @@ var ResetButton = function (_React$Component15) {
       return React.createElement(
         "button",
         { type: "button", name: "reset", className: "resetButton", style: { display: displayStyle }, onClick: function onClick() {
-            _this22.props.reset();
+            _this23.props.reset();
           }, title: title },
         iconCharacter
       );
@@ -2032,31 +2152,31 @@ var SingleColorYou2DCheckboxSet = function (_React$Component16) {
   function SingleColorYou2DCheckboxSet(props) {
     _classCallCheck(this, SingleColorYou2DCheckboxSet);
 
-    var _this23 = _possibleConstructorReturn(this, (SingleColorYou2DCheckboxSet.__proto__ || Object.getPrototypeOf(SingleColorYou2DCheckboxSet)).call(this, props));
+    var _this24 = _possibleConstructorReturn(this, (SingleColorYou2DCheckboxSet.__proto__ || Object.getPrototypeOf(SingleColorYou2DCheckboxSet)).call(this, props));
 
-    _this23.setActiveColor = _this23.setActiveColor.bind(_this23);
-    _this23.getActiveColor = _this23.getActiveColor.bind(_this23);
+    _this24.setActiveColor = _this24.setActiveColor.bind(_this24);
+    _this24.getActiveColor = _this24.getActiveColor.bind(_this24);
 
-    _this23.reset = _this23.reset.bind(_this23);
+    _this24.reset = _this24.reset.bind(_this24);
 
-    if (_this23.props.youOrThem.toLowerCase() == "you") {
-      _this23.activeColor = 'green';
+    if (_this24.props.youOrThem.toLowerCase() == "you") {
+      _this24.activeColor = 'green';
     } else {
-      _this23.activeColor = 'white';
+      _this24.activeColor = 'white';
     }
 
-    _this23.optionColors = [];
-    for (var j = 0; j < _this23.props.cellDimensions; j++) {
-      _this23.optionColors[j] = [];
-      for (var i = 0; i < _this23.props.cellDimensions; i++) {
-        _this23.optionColors[j][i] = 'white';
+    _this24.optionColors = [];
+    for (var j = 0; j < _this24.props.cellDimensions; j++) {
+      _this24.optionColors[j] = [];
+      for (var i = 0; i < _this24.props.cellDimensions; i++) {
+        _this24.optionColors[j][i] = 'white';
       }
     }
 
-    _this23.state = {
-      optionColors: _this23.optionColors
+    _this24.state = {
+      optionColors: _this24.optionColors
     };
-    return _this23;
+    return _this24;
   }
 
   //TODO: should not be a dependence on 'white'
@@ -2136,7 +2256,7 @@ var SingleColorYou2DCheckboxSet = function (_React$Component16) {
   }, {
     key: "fillTableCols",
     value: function fillTableCols(rowIndex, hoverability) {
-      var _this24 = this;
+      var _this25 = this;
 
       var rowContents = [];
 
@@ -2159,11 +2279,11 @@ var SingleColorYou2DCheckboxSet = function (_React$Component16) {
 
         if (i === 0 && rowIndex === 0) {
           cornerStatus = 'topLeft';
-        } else if (i === 0 && rowIndex === _this24.props.cellDimensions - 1) {
+        } else if (i === 0 && rowIndex === _this25.props.cellDimensions - 1) {
           cornerStatus = 'bottomLeft';
-        } else if (i === _this24.props.cellDimensions - 1 && rowIndex === 0) {
+        } else if (i === _this25.props.cellDimensions - 1 && rowIndex === 0) {
           cornerStatus = 'topRight';
-        } else if (i === _this24.props.cellDimensions - 1 && rowIndex === _this24.props.cellDimensions - 1) {
+        } else if (i === _this25.props.cellDimensions - 1 && rowIndex === _this25.props.cellDimensions - 1) {
           cornerStatus = 'bottomRight';
         }
 
@@ -2172,8 +2292,8 @@ var SingleColorYou2DCheckboxSet = function (_React$Component16) {
           { key: i },
           React.createElement(
             "div",
-            { className: "visibleBorder " + _this24.state.optionColors[rowIndex][i] + ' ' + cornerStatus + ' ' + hoverability, onClick: function onClick() {
-                return _this24.getActiveColor(i, rowIndex);
+            { className: "visibleBorder " + _this25.state.optionColors[rowIndex][i] + ' ' + cornerStatus + ' ' + hoverability, onClick: function onClick() {
+                return _this25.getActiveColor(i, rowIndex);
               } },
             "\xA0"
           )
@@ -2338,28 +2458,28 @@ var SingleColorYouCheckboxSet = function (_React$Component17) {
   function SingleColorYouCheckboxSet(props) {
     _classCallCheck(this, SingleColorYouCheckboxSet);
 
-    var _this25 = _possibleConstructorReturn(this, (SingleColorYouCheckboxSet.__proto__ || Object.getPrototypeOf(SingleColorYouCheckboxSet)).call(this, props));
+    var _this26 = _possibleConstructorReturn(this, (SingleColorYouCheckboxSet.__proto__ || Object.getPrototypeOf(SingleColorYouCheckboxSet)).call(this, props));
 
-    _this25.setActiveColor = _this25.setActiveColor.bind(_this25);
-    _this25.getActiveColor = _this25.getActiveColor.bind(_this25);
+    _this26.setActiveColor = _this26.setActiveColor.bind(_this26);
+    _this26.getActiveColor = _this26.getActiveColor.bind(_this26);
 
-    _this25.reset = _this25.reset.bind(_this25);
+    _this26.reset = _this26.reset.bind(_this26);
 
-    if (_this25.props.youOrThem.toLowerCase() == "you") {
-      _this25.activeColor = 'green';
+    if (_this26.props.youOrThem.toLowerCase() == "you") {
+      _this26.activeColor = 'green';
     } else {
-      _this25.activeColor = 'white';
+      _this26.activeColor = 'white';
     }
 
-    _this25.optionColors = [];
-    for (var i = 0; i < _this25.props.possibleOptions.length; i++) {
-      _this25.optionColors[i] = 'white';
+    _this26.optionColors = [];
+    for (var i = 0; i < _this26.props.possibleOptions.length; i++) {
+      _this26.optionColors[i] = 'white';
     }
 
-    _this25.state = {
-      optionColors: _this25.optionColors
+    _this26.state = {
+      optionColors: _this26.optionColors
     };
-    return _this25;
+    return _this26;
   }
 
   _createClass(SingleColorYouCheckboxSet, [{
@@ -2517,10 +2637,10 @@ var FuzzySelectBar = function (_React$Component18) {
   function FuzzySelectBar(props) {
     _classCallCheck(this, FuzzySelectBar);
 
-    var _this26 = _possibleConstructorReturn(this, (FuzzySelectBar.__proto__ || Object.getPrototypeOf(FuzzySelectBar)).call(this, props));
+    var _this27 = _possibleConstructorReturn(this, (FuzzySelectBar.__proto__ || Object.getPrototypeOf(FuzzySelectBar)).call(this, props));
 
-    _this26.retrieve = _this26.retrieve.bind(_this26);
-    return _this26;
+    _this27.retrieve = _this27.retrieve.bind(_this27);
+    return _this27;
   }
 
   _createClass(FuzzySelectBar, [{
@@ -2589,10 +2709,10 @@ var NumericalSelectBar = function (_React$Component19) {
   function NumericalSelectBar(props) {
     _classCallCheck(this, NumericalSelectBar);
 
-    var _this27 = _possibleConstructorReturn(this, (NumericalSelectBar.__proto__ || Object.getPrototypeOf(NumericalSelectBar)).call(this, props));
+    var _this28 = _possibleConstructorReturn(this, (NumericalSelectBar.__proto__ || Object.getPrototypeOf(NumericalSelectBar)).call(this, props));
 
-    _this27.retrieve = _this27.retrieve.bind(_this27);
-    return _this27;
+    _this28.retrieve = _this28.retrieve.bind(_this28);
+    return _this28;
   }
 
   _createClass(NumericalSelectBar, [{
@@ -2660,10 +2780,10 @@ var BooleanSelectBar = function (_React$Component20) {
   function BooleanSelectBar(props) {
     _classCallCheck(this, BooleanSelectBar);
 
-    var _this28 = _possibleConstructorReturn(this, (BooleanSelectBar.__proto__ || Object.getPrototypeOf(BooleanSelectBar)).call(this, props));
+    var _this29 = _possibleConstructorReturn(this, (BooleanSelectBar.__proto__ || Object.getPrototypeOf(BooleanSelectBar)).call(this, props));
 
-    _this28.retrieve = _this28.retrieve.bind(_this28);
-    return _this28;
+    _this29.retrieve = _this29.retrieve.bind(_this29);
+    return _this29;
   }
 
   _createClass(BooleanSelectBar, [{
@@ -2707,39 +2827,39 @@ var BulletList = function (_React$Component21) {
   function BulletList(props) {
     _classCallCheck(this, BulletList);
 
-    var _this29 = _possibleConstructorReturn(this, (BulletList.__proto__ || Object.getPrototypeOf(BulletList)).call(this, props));
+    var _this30 = _possibleConstructorReturn(this, (BulletList.__proto__ || Object.getPrototypeOf(BulletList)).call(this, props));
 
-    _this29.retrieve = _this29.retrieve.bind(_this29);
-    _this29.reset = _this29.reset.bind(_this29);
+    _this30.retrieve = _this30.retrieve.bind(_this30);
+    _this30.reset = _this30.reset.bind(_this30);
 
-    _this29.closeBullet = _this29.closeBullet.bind(_this29);
-    _this29.newBullet = _this29.newBullet.bind(_this29);
+    _this30.closeBullet = _this30.closeBullet.bind(_this30);
+    _this30.newBullet = _this30.newBullet.bind(_this30);
 
     //two sets of component keys -- used for forcing re-mounts
-    _this29.keysA = [];
-    _this29.keysB = [];
-    for (var i = 0; i < _this29.props.maxBullets; i++) {
-      _this29.keysA[i] = i;
-      _this29.keysB[i] = i + _this29.props.maxBullets;
+    _this30.keysA = [];
+    _this30.keysB = [];
+    for (var i = 0; i < _this30.props.maxBullets; i++) {
+      _this30.keysA[i] = i;
+      _this30.keysB[i] = i + _this30.props.maxBullets;
     }
 
-    _this29.currentKeySet = 'A';
-    _this29.keySet = _this29.keysA;
+    _this30.currentKeySet = 'A';
+    _this30.keySet = _this30.keysA;
 
     var bulletContents = [];
-    if (_this29.props.singleBulletList) {
+    if (_this30.props.singleBulletList) {
       bulletContents[0] = '';
     }
 
     //feed the parent an empty list to start off with
     var bulletListJson = {};
-    bulletListJson[_this29.props.name.toLowerCase()] = [''];
-    _this29.props.retrieve(bulletListJson);
+    bulletListJson[_this30.props.name.toLowerCase()] = [''];
+    _this30.props.retrieve(bulletListJson);
 
-    _this29.state = {
+    _this30.state = {
       bulletContents: bulletContents
     };
-    return _this29;
+    return _this30;
   }
 
   _createClass(BulletList, [{
@@ -2890,10 +3010,10 @@ var SingleBulletList = function (_React$Component22) {
   function SingleBulletList(props) {
     _classCallCheck(this, SingleBulletList);
 
-    var _this30 = _possibleConstructorReturn(this, (SingleBulletList.__proto__ || Object.getPrototypeOf(SingleBulletList)).call(this, props));
+    var _this31 = _possibleConstructorReturn(this, (SingleBulletList.__proto__ || Object.getPrototypeOf(SingleBulletList)).call(this, props));
 
-    _this30.retrieve = _this30.retrieve.bind(_this30);
-    return _this30;
+    _this31.retrieve = _this31.retrieve.bind(_this31);
+    return _this31;
   }
 
   _createClass(SingleBulletList, [{
@@ -2968,13 +3088,13 @@ var BulletEntryBox = function (_React$Component24) {
   _createClass(BulletEntryBox, [{
     key: "render",
     value: function render() {
-      var _this33 = this;
+      var _this34 = this;
 
       return React.createElement(
         "div",
         { className: "bulletEntry" },
         React.createElement("input", { type: "text", defaultValue: this.props.preloadedContents, disabled: this.props.interactionFrozen, onBlur: function onBlur(event) {
-            _this33.props.retrieve(_this33.props.index, event);
+            _this34.props.retrieve(_this34.props.index, event);
           }, maxLength: BulletEntryBox.maxLength })
       );
     }
@@ -3005,7 +3125,7 @@ var CloseBulletButton = function (_React$Component25) {
 
     //closeBullet triggers a re-render at the BulletList level
     value: function render() {
-      var _this35 = this;
+      var _this36 = this;
 
       var displayStyle = 'block';
       if (this.props.interactionFrozen) {
@@ -3015,7 +3135,7 @@ var CloseBulletButton = function (_React$Component25) {
       return React.createElement(
         "button",
         { className: "closeBulletButton", style: { display: displayStyle }, onClick: function onClick() {
-            _this35.props.closeBullet(_this35.props.index);
+            _this36.props.closeBullet(_this36.props.index);
           } },
         "X"
       );
@@ -3040,7 +3160,7 @@ var NewBulletButton = function (_React$Component26) {
   _createClass(NewBulletButton, [{
     key: "render",
     value: function render() {
-      var _this37 = this;
+      var _this38 = this;
 
       var displayStyle = 'block';
       if (this.props.interactionFrozen) {
@@ -3050,7 +3170,7 @@ var NewBulletButton = function (_React$Component26) {
       return React.createElement(
         "button",
         { className: "newBulletButton", style: { display: displayStyle }, onClick: function onClick() {
-            return _this37.props.newBullet();
+            return _this38.props.newBullet();
           } },
         ('More ' + this.props.name.toLowerCase() + ' (up to ' + this.props.maxBullets + ')').replace(/ /g, "\xA0")
       );

@@ -16,7 +16,7 @@ class Chart extends React.Component {
     this.webVersion  = "2.0 Alpha";
     this.chartVersion = "3.0";
 
-    this.adminEmail = 'qtprime@qtchart.com';
+    this.contactInfo = 'qtprime@qtchart.com';
 
     this.requestChartImage = this.requestChartImage.bind(this);
     this.pageLoadHandler   = this.pageLoadHandler.bind(this);
@@ -87,7 +87,24 @@ class Chart extends React.Component {
 
     this.jsonLoadId = '';
 
-    this.userDataFromSessionCookie(this.pageLoadHandler);
+    let restParams = new URLSearchParams(window.location.search.slice(1));
+
+    if (restParams.has("user")) {
+      let username = restParams.get("user");
+
+      this.userDataFromUsername(username,this.pageLoadHandler);
+      this.state.viewerType = "visitor";
+      this.state.username   = username;
+    } else {
+      this.userDataFromSessionCookie(this.pageLoadHandler);
+      this.state.viewerType = "owner";
+      this.state.username   = '';
+    }
+
+    if (this.state.viewerType=="visitor") {
+      this.state.interactionFrozen   = true;
+      this.state.emptyElementsHidden = true;
+    }
   }
 
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
@@ -536,19 +553,27 @@ class Chart extends React.Component {
     httpRequest.send(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
   }
 
+  openLoginPrompt() {
+    $('#loginModal').modal('show');
+  }
+
+  openRegisterPrompt() {
+    $('#registerModal').modal('show');
+  }
+
   render() {
     var targets = [];
     var possibleTargets = ["You","Them"];
     for (let i=0;i<possibleTargets.length;i++) {
-      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
+      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} username={this.state.username} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
     }
 
     var footerButtons = [];
     footerButtons.push(<button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>);
     footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
     footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
-    footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {$('#registerModal').modal('show');}}>Reg Modal</button>);
-    footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {$('#loginModal').modal('show');}}>Log Modal</button>);
+    footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Reg Modal</button>);
+    footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {this.openLoginPrompt()}}>Log Modal</button>);
 
     if (this.developmentMode) {
       footerButtons.push(<button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>);
@@ -559,7 +584,7 @@ class Chart extends React.Component {
 
     return (
       <div className="chart fillSmallScreen">
-        <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
+        <ChartName webVersion={this.webVersion} contactInfo={this.contactInfo} viewerType={this.state.viewerType} loggedIn={this.state.loggedIn} logout={this.logout} openLoginPrompt={this.openLoginPrompt} />
         {targets}
         <div className="chartFooter">
           <LoginRegisterModal modalType={'login'} loginOrRegister={this.login} pageLoadHandler={this.pageLoadHandler} />
@@ -652,8 +677,40 @@ class LoginRegisterModal extends React.Component {
   }
 }
 
+//props: webVersion, contactInfo, baseUrl, viewerType, loggedIn, logout(), openLoginPrompt()
 class ChartName extends React.Component {
   render() {
+    var buttonA;
+    var buttonB;
+
+    if (this.props.viewerType=="visitor") {
+      if (this.props.loggedIn) {
+        buttonA = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>Your&nbsp;Page</button>
+        buttonB = <button onClick={() => {this.props.logout()}}>Logout</button>
+      } else {
+        buttonA = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>New&nbsp;Chart</button>
+        buttonB = <button onClick={() => {this.props.openLoginPrompt()}}>Login</button>
+      }
+    } else if(this.props.viewerType=="owner") {
+      if (this.props.loggedIn) {
+        buttonB = <button onClick={() => {this.props.logout()}}>Logout</button>
+      } else {
+        buttonB = <button onClick={() => {this.props.logout(); window.location.href = window.location.protocol + '//' + window.location.host;}}>Login</button>
+      }
+      buttonA = ''
+    }
+
+    var buttons = [];
+    if (buttonA!='') {
+      buttons.push(buttonA);
+    }
+    if (buttonA!='' && buttonB!='') {
+      buttons.push(<div className="buttonSpacingDiv"></div>)
+    }
+    if (buttonB!='') {
+      buttons.push(buttonB);
+    }
+
     return (
       <div className="chartName">
         <div className="titleText">
@@ -669,19 +726,23 @@ class ChartName extends React.Component {
             </tbody>
           </table>
         </div>
-        <div className="versionInfo">
+        <div className="otherInfo">
           <table>
             <tbody>
               <tr>
-                <td colSpan="2" className="paddingTd">&nbsp;</td>
-              </tr>
-              <tr>
-                <td className="webVersionTd">Web Version:&nbsp;</td>
+                <td className="webVersionTd">Site Version:&nbsp;</td>
                 <td className="versionNumber">{this.props.webVersion}</td>
               </tr>
               <tr>
-                <td className="chartVersionTd">Chart Version:&nbsp;</td>
-                <td className="versionNumber">{this.props.chartVersion}</td>
+                <td className="contactInfoTd">Contact:&nbsp;</td>
+                <td className="contactInfo">{this.props.contactInfo}</td>
+              </tr>
+              <tr>
+                <td className="buttonTd" colSpan={2}>
+                  <div className="cornerButtons">
+                    {buttons}
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -754,10 +815,15 @@ class Target extends React.Component {
       categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(finalCategoryName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
+    var targetTitle = <h2><b>{this.props.targetName}</b></h2>
+    if (this.props.targetName.toLowerCase()=="you" && this.props.username!='') {
+      targetTitle = <h2><b>{this.props.targetName + ': '}</b>{'(' + this.props.username + ')'}</h2>
+    }
+
     return (
       <div className="target">
         <div className="targetName">
-          <h2><b>{this.props.targetName}</b></h2>
+          {targetTitle}
         </div>
         <div className="targetBody">
           {categories}
@@ -839,17 +905,20 @@ class Category extends React.Component {
   }
 
   nothingSelected() { //returns true immediately on page load
-    for (let categoryName in this.json) {
-      for (let elementName in this.json[categoryName]) {
-        for (let subelementName in this.json[categoryName][elementName]) {
-          if (this.json[categoryName][elementName][subelementName]!='none') {
-            return false;
+    if (this.loadedJson=={}) {
+      for (let categoryName in this.json) {
+        for (let elementName in this.json[categoryName]) {
+          for (let subelementName in this.json[categoryName][elementName]) {
+            if (this.json[categoryName][elementName][subelementName]!='none') {
+              return false;
+            }
           }
         }
       }
+      return true;
+    } else {
+      return false;
     }
-
-    return true;
   }
 
   handleCategoryDetailsOpen(event) {
