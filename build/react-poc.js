@@ -127,7 +127,7 @@ var Chart = function (_React$Component) {
   _createClass(Chart, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(targetName) {
-      console.log(this.state.loadedJson);
+      //console.log(this.state.loadedJson);
       if (targetName.toLowerCase() in this.state.loadedJson) {
         var jsonWithId = {};
         jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
@@ -1236,12 +1236,13 @@ var Category = function (_React$Component5) {
   _createClass(Category, [{
     key: "getLoadedJsonForChild",
     value: function getLoadedJsonForChild(elementName) {
+      //console.log(this.props.loadedJson);
       if (this.props.categoryName.toLowerCase() in this.props.loadedJson) {
         if (elementName.toLowerCase() in this.props.loadedJson[this.props.categoryName.toLowerCase()]) {
           var jsonWithId = {};
           jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
           jsonWithId["id"] = this.props.loadedJson["id"];
-          //console.log(jsonWithId);
+          console.log(jsonWithId);
           return jsonWithId;
         } else {
           return {};
@@ -1468,6 +1469,7 @@ var MulticolorCheckboxSet = function (_React$Component6) {
     key: "nothingSelected",
     value: function nothingSelected() {
       //returns true immediately on page load
+      //console.log(this.json);
       for (var setName in this.json) {
         for (var checkboxName in this.json[setName]) {
           if (this.json[setName][checkboxName] != 'none') {
@@ -1660,6 +1662,27 @@ var MulticolorCheckbox = function (_React$Component7) {
         return MulticolorCheckbox.colorNames(index);
       } else {
         return MulticolorCheckbox.colorNames(this.props.loadedJson);
+      }
+    }
+  }, {
+    key: "componentWillReceiveProps",
+    value: function componentWillReceiveProps(nextProps) {
+
+      //if fresh loadedJson is on its way, clear the old contents and replace with the new
+      if (nextProps.loadedJson['id'] != this.props.loadedJson['id']) {
+        var newColors = [];
+        for (var i = 0; i < this.state.childColors.length; i++) {
+          newColors[i] = MulticolorCheckbox.colorNames(i);
+        }
+
+        if (nextProps.loadedJson[nextProps.label.toLowerCase()] != 'none') {
+          newColors[nextProps.loadedJson[nextProps.label.toLowerCase()]] = 'black';
+        }
+
+        //console.log(nextProps.label.toLowerCase());
+        //console.log(newColors);
+
+        this.setState({ childColors: newColors });
       }
     }
   }, {
@@ -2916,7 +2939,11 @@ var BulletList = function (_React$Component21) {
   }, {
     key: "isEmpty",
     value: function isEmpty() {
-      return this.state.bulletContents == [];
+      if (this.state.bulletContents.length == 0) {
+        return true;
+      } else if (this.state.bulletContents.length == 1) {
+        return this.state.bulletContents[0] == "";
+      }
     }
   }, {
     key: "componentWillReceiveProps",
@@ -2925,7 +2952,8 @@ var BulletList = function (_React$Component21) {
       if (nextProps.loadedJson['id'] != this.props.loadedJson['id']) {
         var bulletContents = [];
 
-        if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string") {
+        if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
+          console.log("STRING");
           bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
         } else {
           for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
@@ -2933,6 +2961,7 @@ var BulletList = function (_React$Component21) {
           }
         }
 
+        console.log(bulletContents);
         this.setState({ bulletContents: bulletContents });
       }
     }
@@ -3026,6 +3055,8 @@ var SingleBulletList = function (_React$Component22) {
   }, {
     key: "render",
     value: function render() {
+      //console.log(this.props.loadedJson);
+
       return React.createElement(BulletList, { name: this.props.name, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: 1, singleBulletList: true, loadedJson: this.props.loadedJson });
     }
   }]);

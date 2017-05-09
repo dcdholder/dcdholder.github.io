@@ -125,7 +125,7 @@ class Chart extends React.Component {
   static get generateAnimationTick() {return 1000; }
 
   getLoadedJsonForChild(targetName) {
-    console.log(this.state.loadedJson);
+    //console.log(this.state.loadedJson);
     if (targetName.toLowerCase() in this.state.loadedJson) {
       var jsonWithId = {};
       jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
@@ -847,12 +847,13 @@ class Category extends React.Component {
   }
 
   getLoadedJsonForChild(elementName) {
+    //console.log(this.props.loadedJson);
     if (this.props.categoryName.toLowerCase() in this.props.loadedJson) {
       if (elementName.toLowerCase() in this.props.loadedJson[this.props.categoryName.toLowerCase()]) {
         var jsonWithId = {};
         jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
         jsonWithId["id"] = this.props.loadedJson["id"];
-        //console.log(jsonWithId);
+        console.log(jsonWithId);
         return jsonWithId;
       } else {
         return {};
@@ -1056,6 +1057,7 @@ class MulticolorCheckboxSet extends React.Component {
   }
 
   nothingSelected() { //returns true immediately on page load
+    //console.log(this.json);
     for (let setName in this.json) {
       for (let checkboxName in this.json[setName]) {
         if (this.json[setName][checkboxName]!='none') {
@@ -1186,6 +1188,26 @@ class MulticolorCheckbox extends React.Component {
       return MulticolorCheckbox.colorNames(index);
     } else {
       return MulticolorCheckbox.colorNames(this.props.loadedJson);
+    }
+  }
+
+  componentWillReceiveProps(nextProps) {
+
+    //if fresh loadedJson is on its way, clear the old contents and replace with the new
+    if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
+      var newColors = [];
+      for (var i=0; i<this.state.childColors.length; i++) {
+        newColors[i] = MulticolorCheckbox.colorNames(i);
+      }
+
+      if (nextProps.loadedJson[nextProps.label.toLowerCase()]!='none') {
+        newColors[nextProps.loadedJson[nextProps.label.toLowerCase()]]='black';
+      }
+
+      //console.log(nextProps.label.toLowerCase());
+      //console.log(newColors);
+
+      this.setState({childColors: newColors});
     }
   }
 
@@ -2082,7 +2104,11 @@ class BulletList extends React.Component {
   }
 
   isEmpty() {
-    return this.state.bulletContents==[];
+    if (this.state.bulletContents.length==0) {
+      return true;
+    } else if (this.state.bulletContents.length==1) {
+      return this.state.bulletContents[0]=="";
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -2090,7 +2116,8 @@ class BulletList extends React.Component {
     if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
       var bulletContents = [];
 
-      if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string") {
+      if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
+        console.log("STRING");
         bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
       } else {
         for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
@@ -2098,6 +2125,7 @@ class BulletList extends React.Component {
         }
       }
 
+      console.log(bulletContents);
       this.setState({bulletContents: bulletContents});
     }
   }
@@ -2170,11 +2198,13 @@ class SingleBulletList extends React.Component {
 
   retrieve(childJson) {
     var singleBulletListJson = {};
-    singleBulletListJson[this.props.name.toLowerCase()] = childJson[this.props.name.toLowerCase()][0]
-    this.props.retrieve(singleBulletListJson)
+    singleBulletListJson[this.props.name.toLowerCase()] = childJson[this.props.name.toLowerCase()][0];
+    this.props.retrieve(singleBulletListJson);
   }
 
   render() {
+    //console.log(this.props.loadedJson);
+
     return (
       <BulletList name={this.props.name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} loadedJson={this.props.loadedJson} />
     );
