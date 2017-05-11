@@ -95,17 +95,16 @@ class Chart extends React.Component {
 
     let restParams = new URLSearchParams(window.location.search.slice(1));
 
+    this.state.username = '';
     if (restParams.has("user")) {
       let username = restParams.get("user");
 
       this.userDataFromUsername(username,this.pageLoadHandler);
       this.userDataFromSessionCookie(this.loginConfirmationHandler);
       this.state.viewerType = "visitor";
-      this.state.username   = username;
     } else {
       this.userDataFromSessionCookie(this.pageLoadAndLoginConfirmationHandler);
       this.state.viewerType = "owner";
-      this.state.username   = '';
     }
 
     if (this.state.viewerType=="visitor") {
@@ -270,20 +269,20 @@ class Chart extends React.Component {
     return true;
   }
 
-  pageLoadHandler(initialData) {
+  pageLoadHandler(username,initialData) {
     this.jsonLoadId = Math.random();
-    this.setState({loadedJson: initialData});
+    this.setState({username: username, loadedJson: initialData});
   }
 
   //basically ignores the user data, just confirms that the user is logged in
   //TODO: new request function which just returns whether your session is valid
-  loginConfirmationHandler(initialData) {
+  loginConfirmationHandler(username,initialData) {
     this.setState({loggedIn: true});
   }
 
-  pageLoadAndLoginConfirmationHandler(initialData) {
-    this.pageLoadHandler(initialData);
-    this.loginConfirmationHandler(initialData);
+  pageLoadAndLoginConfirmationHandler(username,initialData) {
+    this.pageLoadHandler(username,initialData);
+    this.loginConfirmationHandler(username,initialData);
   }
 
   createPage(username,password,successHandler,failureHandler) {
@@ -343,7 +342,7 @@ class Chart extends React.Component {
     httpRequest.onreadystatechange = function() {
       if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
         initialData = JSON.parse(httpRequest.response);
-        handler(initialData);
+        handler(username,initialData);
       } else if (httpRequest.status>=400) {
         localStorage.removeItem("sessionId");
       }
@@ -417,21 +416,23 @@ class Chart extends React.Component {
   }
 
   setLoginStatusAndViewerType(loggedIn,viewerType) {
-    var loadedJson;
+    var loadedJson = this.state.loadedJson;
+    var username   = this.state.username;
     if (!loggedIn) {
       this.jsonLoadId = Math.random();
       loadedJson = {};
-    } else {
-      loadedJson = this.state.loadedJson;
-    }
 
-    console.log(loadedJson);
+      if (viewerType==="owner") {
+        username = '';
+      }
+    }
 
     if (viewerType==="visitor") {
       this.setState({
         loggedIn: loggedIn,
         viewerType: viewerType,
-        loadedJson: laodedJson,
+        loadedJson: loadedJson,
+        username: username,
         interactionFrozen:   true,
         emptyElementsHidden: true
       });
@@ -440,6 +441,7 @@ class Chart extends React.Component {
         loggedIn: loggedIn,
         viewerType: viewerType,
         loadedJson: loadedJson,
+        username: username,
         interactionFrozen:   false,
         emptyElementsHidden: false
       });
@@ -553,7 +555,7 @@ class Chart extends React.Component {
 
     this.showGenerateWaitAnimation();
     //console.log(this.imageRequestUri());
-    httpRequest.open('POST', this.imageRequestUri(), true);
+    httpRequest.open('POST', Chart.imageRequestUri, true);
     httpRequest.setRequestHeader("Content-type", "application/json");
     httpRequest.responseType = "blob";
 
@@ -598,12 +600,20 @@ class Chart extends React.Component {
 
     var footerButtons = [];
     footerButtons.push(<button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>);
-    footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
-    footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
-    footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Reg Modal</button>);
-    footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {this.openLoginPrompt()}}>Log Modal</button>);
+
+    footerButtons.push(<div className="buttonSpacingDiv"></div>);
+
+    if (this.state.viewerType=="owner") {
+      if (this.state.loggedIn) {
+        footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
+      } else {
+        footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Save Page</button>);
+      }
+    }
 
     if (this.developmentMode) {
+      footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
+      footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {this.openLoginPrompt()}}>Log Modal</button>);
       footerButtons.push(<button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>);
       footerButtons.push(<button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>);
       footerButtons.push(<button type="button" name="deleteUserA" onClick={() => this.deleteUser("testusera","password")}>DeleteUserA</button>);
@@ -693,6 +703,7 @@ class LoginRegisterModal extends React.Component {
             <div className="modal-footer">
               <div>
                 <button name="close" onClick={() => this.close()}>Close</button>
+                <div className="buttonSpacingDiv"></div>
                 {requestButtonJsx}
               </div>
               <div>
@@ -765,6 +776,12 @@ class ChartName extends React.Component {
               <tr>
                 <td className="contactInfoTd">Contact:&nbsp;</td>
                 <td className="contactInfo">{this.props.contactInfo}</td>
+              </tr>
+              <tr>
+                <td colSpan={2}>
+                  <div style={{height: 5}}>
+                  </div>
+                </td>
               </tr>
               <tr>
                 <td className="buttonTd" colSpan={2}>
@@ -882,7 +899,6 @@ class Category extends React.Component {
         var jsonWithId = {};
         jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
         jsonWithId["id"] = this.props.loadedJson["id"];
-        console.log(jsonWithId);
         return jsonWithId;
       } else {
         return {};
@@ -2146,7 +2162,6 @@ class BulletList extends React.Component {
       var bulletContents = [];
 
       if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
-        console.log("STRING");
         bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
       } else {
         for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
@@ -2154,7 +2169,6 @@ class BulletList extends React.Component {
         }
       }
 
-      console.log(bulletContents);
       this.setState({bulletContents: bulletContents});
     }
   }

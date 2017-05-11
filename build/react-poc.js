@@ -108,17 +108,16 @@ var Chart = function (_React$Component) {
 
     var restParams = new URLSearchParams(window.location.search.slice(1));
 
+    _this.state.username = '';
     if (restParams.has("user")) {
       var username = restParams.get("user");
 
       _this.userDataFromUsername(username, _this.pageLoadHandler);
       _this.userDataFromSessionCookie(_this.loginConfirmationHandler);
       _this.state.viewerType = "visitor";
-      _this.state.username = username;
     } else {
       _this.userDataFromSessionCookie(_this.pageLoadAndLoginConfirmationHandler);
       _this.state.viewerType = "owner";
-      _this.state.username = '';
     }
 
     if (_this.state.viewerType == "visitor") {
@@ -282,9 +281,9 @@ var Chart = function (_React$Component) {
     }
   }, {
     key: "pageLoadHandler",
-    value: function pageLoadHandler(initialData) {
+    value: function pageLoadHandler(username, initialData) {
       this.jsonLoadId = Math.random();
-      this.setState({ loadedJson: initialData });
+      this.setState({ username: username, loadedJson: initialData });
     }
 
     //basically ignores the user data, just confirms that the user is logged in
@@ -292,14 +291,14 @@ var Chart = function (_React$Component) {
 
   }, {
     key: "loginConfirmationHandler",
-    value: function loginConfirmationHandler(initialData) {
+    value: function loginConfirmationHandler(username, initialData) {
       this.setState({ loggedIn: true });
     }
   }, {
     key: "pageLoadAndLoginConfirmationHandler",
-    value: function pageLoadAndLoginConfirmationHandler(initialData) {
-      this.pageLoadHandler(initialData);
-      this.loginConfirmationHandler(initialData);
+    value: function pageLoadAndLoginConfirmationHandler(username, initialData) {
+      this.pageLoadHandler(username, initialData);
+      this.loginConfirmationHandler(username, initialData);
     }
   }, {
     key: "createPage",
@@ -364,7 +363,7 @@ var Chart = function (_React$Component) {
       httpRequest.onreadystatechange = function () {
         if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
           initialData = JSON.parse(httpRequest.response);
-          handler(initialData);
+          handler(username, initialData);
         } else if (httpRequest.status >= 400) {
           localStorage.removeItem("sessionId");
         }
@@ -442,21 +441,23 @@ var Chart = function (_React$Component) {
   }, {
     key: "setLoginStatusAndViewerType",
     value: function setLoginStatusAndViewerType(loggedIn, viewerType) {
-      var loadedJson;
+      var loadedJson = this.state.loadedJson;
+      var username = this.state.username;
       if (!loggedIn) {
         this.jsonLoadId = Math.random();
         loadedJson = {};
-      } else {
-        loadedJson = this.state.loadedJson;
-      }
 
-      console.log(loadedJson);
+        if (viewerType === "owner") {
+          username = '';
+        }
+      }
 
       if (viewerType === "visitor") {
         this.setState({
           loggedIn: loggedIn,
           viewerType: viewerType,
-          loadedJson: laodedJson,
+          loadedJson: loadedJson,
+          username: username,
           interactionFrozen: true,
           emptyElementsHidden: true
         });
@@ -465,6 +466,7 @@ var Chart = function (_React$Component) {
           loggedIn: loggedIn,
           viewerType: viewerType,
           loadedJson: loadedJson,
+          username: username,
           interactionFrozen: false,
           emptyElementsHidden: false
         });
@@ -574,7 +576,7 @@ var Chart = function (_React$Component) {
 
       this.showGenerateWaitAnimation();
       //console.log(this.imageRequestUri());
-      httpRequest.open('POST', this.imageRequestUri(), true);
+      httpRequest.open('POST', Chart.imageRequestUri, true);
       httpRequest.setRequestHeader("Content-type", "application/json");
       httpRequest.responseType = "blob";
 
@@ -629,36 +631,44 @@ var Chart = function (_React$Component) {
         { type: "button", name: "download", onClick: this.requestChartImage },
         this.state['generateButtonText']
       ));
-      footerButtons.push(React.createElement(
-        "button",
-        { type: "button", name: "Update", onClick: function onClick() {
-            _this2.updatePageServerSide();
-          } },
-        "Update"
-      ));
-      footerButtons.push(React.createElement(
-        "button",
-        { type: "button", name: "Logout", onClick: function onClick() {
-            _this2.logout();
-          } },
-        "Logout"
-      ));
-      footerButtons.push(React.createElement(
-        "button",
-        { type: "button", name: "registerModalButton", onClick: function onClick() {
-            _this2.openRegisterPrompt();
-          } },
-        "Reg Modal"
-      ));
-      footerButtons.push(React.createElement(
-        "button",
-        { type: "button", name: "loginModalButton", onClick: function onClick() {
-            _this2.openLoginPrompt();
-          } },
-        "Log Modal"
-      ));
+
+      footerButtons.push(React.createElement("div", { className: "buttonSpacingDiv" }));
+
+      if (this.state.viewerType == "owner") {
+        if (this.state.loggedIn) {
+          footerButtons.push(React.createElement(
+            "button",
+            { type: "button", name: "Update", onClick: function onClick() {
+                _this2.updatePageServerSide();
+              } },
+            "Update"
+          ));
+        } else {
+          footerButtons.push(React.createElement(
+            "button",
+            { type: "button", name: "registerModalButton", onClick: function onClick() {
+                _this2.openRegisterPrompt();
+              } },
+            "Save Page"
+          ));
+        }
+      }
 
       if (this.developmentMode) {
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "Logout", onClick: function onClick() {
+              _this2.logout();
+            } },
+          "Logout"
+        ));
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "loginModalButton", onClick: function onClick() {
+              _this2.openLoginPrompt();
+            } },
+          "Log Modal"
+        ));
         footerButtons.push(React.createElement(
           "button",
           { type: "button", name: "freezeUnfreeze", onClick: function onClick() {
@@ -922,6 +932,7 @@ var LoginRegisterModal = function (_React$Component2) {
                     } },
                   "Close"
                 ),
+                React.createElement("div", { className: "buttonSpacingDiv" }),
                 requestButtonJsx
               ),
               React.createElement(
@@ -1109,6 +1120,15 @@ var ChartName = function (_React$Component3) {
                 null,
                 React.createElement(
                   "td",
+                  { colSpan: 2 },
+                  React.createElement("div", { style: { height: 5 } })
+                )
+              ),
+              React.createElement(
+                "tr",
+                null,
+                React.createElement(
+                  "td",
                   { className: "buttonTd", colSpan: 2 },
                   React.createElement(
                     "div",
@@ -1268,7 +1288,6 @@ var Category = function (_React$Component5) {
           var jsonWithId = {};
           jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
           jsonWithId["id"] = this.props.loadedJson["id"];
-          console.log(jsonWithId);
           return jsonWithId;
         } else {
           return {};
@@ -2979,7 +2998,6 @@ var BulletList = function (_React$Component21) {
         var bulletContents = [];
 
         if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
-          console.log("STRING");
           bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
         } else {
           for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
@@ -2987,7 +3005,6 @@ var BulletList = function (_React$Component21) {
           }
         }
 
-        console.log(bulletContents);
         this.setState({ bulletContents: bulletContents });
       }
     }
