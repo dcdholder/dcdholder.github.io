@@ -961,19 +961,13 @@ var ChartName = function (_React$Component3) {
 
       if (this.props.viewerType == "visitor") {
         if (this.props.loggedIn) {
-          buttonA = React.createElement(
+          buttonA = '';
+          buttonB = React.createElement(
             "button",
             { onClick: function onClick() {
                 window.location.href = window.location.protocol + '//' + window.location.host;
               } },
             "Your\xA0Page"
-          );
-          buttonB = React.createElement(
-            "button",
-            { onClick: function onClick() {
-                _this6.props.logout();
-              } },
-            "Logout"
           );
         } else {
           buttonA = React.createElement(

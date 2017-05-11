@@ -714,8 +714,8 @@ class ChartName extends React.Component {
 
     if (this.props.viewerType=="visitor") {
       if (this.props.loggedIn) {
-        buttonA = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>Your&nbsp;Page</button>
-        buttonB = <button onClick={() => {this.props.logout()}}>Logout</button>
+        buttonA = ''
+        buttonB = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>Your&nbsp;Page</button>
       } else {
         buttonA = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>New&nbsp;Chart</button>
         buttonB = <button onClick={() => {this.props.openLoginPrompt()}}>Login</button>
