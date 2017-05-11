@@ -40,6 +40,7 @@ var Chart = function (_React$Component) {
 
     _this.createPage = _this.createPage.bind(_this);
     _this.login = _this.login.bind(_this);
+    _this.logout = _this.logout.bind(_this);
 
     //TODO: I'm planning on rolling the field format generation into the back-end, these hard-coded lists will disappear
     _this.categoryMulticolorCheckboxMap = { 'Emotional': { 'Quirks': ['Adventurous', 'Ambitious', 'Analytical', 'Artistic', 'Assertive', 'Athletic', 'Confident', 'Creative', 'Cutesy', 'Cynical', 'Easy-going', 'Empathetic', 'Energetic', 'Honest', 'Humorous', 'Hygienic', 'Intelligent', 'Kind', 'Lazy', 'Loud', 'Materialistic', 'Messy', 'Outdoorsy', 'Passionate', 'Reliable', 'Resourceful', 'Romantic', 'Serious', 'Sexual', 'Social', 'Talkative', 'Wise']
@@ -137,11 +138,6 @@ var Chart = function (_React$Component) {
       } else {
         return {};
       }
-    }
-  }, {
-    key: "clearAll",
-    value: function clearAll() {
-      this.setState({ loadedJson: {} });
     }
   }, {
     key: "freezeInteraction",
@@ -282,7 +278,7 @@ var Chart = function (_React$Component) {
     key: "pageLoadHandler",
     value: function pageLoadHandler(initialData) {
       this.jsonLoadId = Math.random();
-      this.setState({ loadedJson: initialData });
+      this.setState({ loadedJson: initialData, loggedIn: true });
     }
   }, {
     key: "createPage",
@@ -372,10 +368,12 @@ var Chart = function (_React$Component) {
           localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
           successHandler();
         } else if (httpRequest.status >= 400) {
+          console.log("What the fuck.");
           failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
         }
       };
       httpRequest.onerror = function () {
+        console.log("What the fuck.");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
       };
       httpRequest.send(JSON.stringify({ "username": username, "password": password, "userData": userData }));
@@ -383,8 +381,7 @@ var Chart = function (_React$Component) {
   }, {
     key: "logout",
     value: function logout() {
-      this.clearAll();
-      this.setDisplayMode('visitor');
+      this.setLoginStatusAndViewerType(false, 'owner');
 
       localStorage.removeItem('sessionId');
 
@@ -399,7 +396,6 @@ var Chart = function (_React$Component) {
     key: "login",
     value: function login(username, password, pageLoadHandler, successHandler, failureHandler) {
       localStorage.removeItem('sessionId');
-      this.setDisplayMode('visitor'); //disable further editing while we load the user's saved data
 
       var httpRequest = new XMLHttpRequest();
 
@@ -414,26 +410,44 @@ var Chart = function (_React$Component) {
           localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
           successHandler();
           that.userDataFromSessionCookie(pageLoadHandler);
+          that.setLoginStatusAndViewerType(true, 'owner');
         } else if (httpRequest.status >= 400) {
+          console.log("actual failure");
           failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
         }
       };
       httpRequest.onerror = function () {
+        console.log("actual failure");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
       };
       httpRequest.send(JSON.stringify({ "username": username, "password": password }));
-      this.setDisplayMode('owner');
     }
   }, {
-    key: "setDisplayMode",
-    value: function setDisplayMode(userType) {
-      if (userType === "visitor") {
+    key: "setLoginStatusAndViewerType",
+    value: function setLoginStatusAndViewerType(loggedIn, viewerType) {
+      var loadedJson;
+      if (!loggedIn) {
+        this.jsonLoadId = Math.random();
+        loadedJson = {};
+      } else {
+        loadedJson = this.state.loadedJson;
+      }
+
+      console.log(loadedJson);
+
+      if (viewerType === "visitor") {
         this.setState({
+          loggedIn: loggedIn,
+          viewerType: viewerType,
+          loadedJson: laodedJson,
           interactionFrozen: true,
           emptyElementsHidden: true
         });
-      } else if (userType === "owner") {
+      } else if (viewerType === "owner") {
         this.setState({
+          loggedIn: loggedIn,
+          viewerType: viewerType,
+          loadedJson: loadedJson,
           interactionFrozen: false,
           emptyElementsHidden: false
         });
@@ -817,7 +831,7 @@ var LoginRegisterModal = function (_React$Component2) {
         requestButtonJsx = React.createElement(
           "button",
           { name: this.props.modalType, onClick: function onClick() {
-              _this4.props.loginOrRegister(_this4.username, _this4.password, _this4.loginRegistrationSuccessHandler, _this4.loginRegistrationFailureHandler);
+              _this4.props.loginOrRegister(_this4.username, _this4.password, _this4.props.pageLoadHandler, _this4.loginRegistrationSuccessHandler, _this4.loginRegistrationFailureHandler);
             } },
           Chart.capitalize(this.props.modalType)
         );
@@ -825,7 +839,7 @@ var LoginRegisterModal = function (_React$Component2) {
         requestButtonJsx = React.createElement(
           "button",
           { name: this.props.modalType, onClick: function onClick() {
-              _this4.props.loginOrRegister(_this4.username, _this4.password, _this4.props.pageLoadHandler, _this4.loginRegistrationSuccessHandler, _this4.loginRegistrationFailureHandler);
+              _this4.props.loginOrRegister(_this4.username, _this4.password, _this4.loginRegistrationSuccessHandler, _this4.loginRegistrationFailureHandler);
             } },
           Chart.capitalize(this.props.modalType)
         );
@@ -972,7 +986,7 @@ var ChartName = function (_React$Component3) {
           buttonB = React.createElement(
             "button",
             { onClick: function onClick() {
-                _this6.props.logout();window.location.href = window.location.protocol + '//' + window.location.host;
+                _this6.props.openLoginPrompt();
               } },
             "Login"
           );

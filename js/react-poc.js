@@ -23,6 +23,7 @@ class Chart extends React.Component {
 
     this.createPage = this.createPage.bind(this);
     this.login      = this.login.bind(this);
+    this.logout     = this.logout.bind(this);
 
     //TODO: I'm planning on rolling the field format generation into the back-end, these hard-coded lists will disappear
     this.categoryMulticolorCheckboxMap = {'Emotional': {'Quirks':
@@ -135,10 +136,6 @@ class Chart extends React.Component {
     } else {
       return {};
     }
-  }
-
-  clearAll() {
-    this.setState({ loadedJson: {}});
   }
 
   freezeInteraction() {
@@ -269,7 +266,7 @@ class Chart extends React.Component {
 
   pageLoadHandler(initialData) {
     this.jsonLoadId = Math.random();
-    this.setState({loadedJson: initialData});
+    this.setState({loadedJson: initialData, loggedIn: true});
   }
 
   createPage(username,password,successHandler,failureHandler) {
@@ -353,18 +350,19 @@ class Chart extends React.Component {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
         successHandler();
       } else if (httpRequest.status>=400) {
+        console.log("What the fuck.");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
+      console.log("What the fuck.");
       failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password, "userData": userData}));
   }
 
   logout() {
-    this.clearAll();
-    this.setDisplayMode('visitor');
+    this.setLoginStatusAndViewerType(false,'owner');
 
     localStorage.removeItem('sessionId');
 
@@ -378,7 +376,6 @@ class Chart extends React.Component {
 
   login(username,password,pageLoadHandler,successHandler,failureHandler) {
     localStorage.removeItem('sessionId');
-    this.setDisplayMode('visitor'); //disable further editing while we load the user's saved data
 
     var httpRequest = new XMLHttpRequest();
 
@@ -393,25 +390,43 @@ class Chart extends React.Component {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
         successHandler();
         that.userDataFromSessionCookie(pageLoadHandler);
+        that.setLoginStatusAndViewerType(true,'owner');
       } else if (httpRequest.status>=400) {
+        console.log("actual failure");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
+      console.log("actual failure");
       failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password}));
-    this.setDisplayMode('owner');
   }
 
-  setDisplayMode(userType) {
-    if (userType==="visitor") {
+  setLoginStatusAndViewerType(loggedIn,viewerType) {
+    var loadedJson;
+    if (!loggedIn) {
+      this.jsonLoadId = Math.random();
+      loadedJson = {};
+    } else {
+      loadedJson = this.state.loadedJson;
+    }
+
+    console.log(loadedJson);
+
+    if (viewerType==="visitor") {
       this.setState({
+        loggedIn: loggedIn,
+        viewerType: viewerType,
+        loadedJson: laodedJson,
         interactionFrozen:   true,
         emptyElementsHidden: true
       });
-    } else if(userType==="owner") {
+    } else if(viewerType==="owner") {
       this.setState({
+        loggedIn: loggedIn,
+        viewerType: viewerType,
+        loadedJson: loadedJson,
         interactionFrozen:   false,
         emptyElementsHidden: false
       });
@@ -639,9 +654,9 @@ class LoginRegisterModal extends React.Component {
   render() {
     var requestButtonJsx;
     if(this.props.modalType=="login") {
-      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
-    } else if (this.props.modalType=="register") {
       requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.props.pageLoadHandler, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
+    } else if (this.props.modalType=="register") {
+      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
     }
 
     return (
@@ -695,7 +710,7 @@ class ChartName extends React.Component {
       if (this.props.loggedIn) {
         buttonB = <button onClick={() => {this.props.logout()}}>Logout</button>
       } else {
-        buttonB = <button onClick={() => {this.props.logout(); window.location.href = window.location.protocol + '//' + window.location.host;}}>Login</button>
+        buttonB = <button onClick={() => {this.props.openLoginPrompt()}}>Login</button>
       }
       buttonA = ''
     }
