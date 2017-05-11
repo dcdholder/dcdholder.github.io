@@ -36,7 +36,10 @@ var Chart = function (_React$Component) {
     _this.contactInfo = 'qtprime@qtchart.com';
 
     _this.requestChartImage = _this.requestChartImage.bind(_this);
+
     _this.pageLoadHandler = _this.pageLoadHandler.bind(_this);
+    _this.loginConfirmationHandler = _this.loginConfirmationHandler.bind(_this);
+    _this.pageLoadAndLoginConfirmationHandler = _this.pageLoadAndLoginConfirmationHandler.bind(_this);
 
     _this.createPage = _this.createPage.bind(_this);
     _this.login = _this.login.bind(_this);
@@ -101,16 +104,19 @@ var Chart = function (_React$Component) {
 
     _this.jsonLoadId = '';
 
+    _this.state.loggedIn = false;
+
     var restParams = new URLSearchParams(window.location.search.slice(1));
 
     if (restParams.has("user")) {
       var username = restParams.get("user");
 
       _this.userDataFromUsername(username, _this.pageLoadHandler);
+      _this.userDataFromSessionCookie(_this.loginConfirmationHandler);
       _this.state.viewerType = "visitor";
       _this.state.username = username;
     } else {
-      _this.userDataFromSessionCookie(_this.pageLoadHandler);
+      _this.userDataFromSessionCookie(_this.pageLoadAndLoginConfirmationHandler);
       _this.state.viewerType = "owner";
       _this.state.username = '';
     }
@@ -278,7 +284,22 @@ var Chart = function (_React$Component) {
     key: "pageLoadHandler",
     value: function pageLoadHandler(initialData) {
       this.jsonLoadId = Math.random();
-      this.setState({ loadedJson: initialData, loggedIn: true });
+      this.setState({ loadedJson: initialData });
+    }
+
+    //basically ignores the user data, just confirms that the user is logged in
+    //TODO: new request function which just returns whether your session is valid
+
+  }, {
+    key: "loginConfirmationHandler",
+    value: function loginConfirmationHandler(initialData) {
+      this.setState({ loggedIn: true });
+    }
+  }, {
+    key: "pageLoadAndLoginConfirmationHandler",
+    value: function pageLoadAndLoginConfirmationHandler(initialData) {
+      this.pageLoadHandler(initialData);
+      this.loginConfirmationHandler(initialData);
     }
   }, {
     key: "createPage",
@@ -318,11 +339,11 @@ var Chart = function (_React$Component) {
             username = httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, "");
             that.userDataFromUsername(username, handler);
           } else if (httpRequest.status >= 400) {
-            localStorage.removeItem("sessionId"); //TODO: uncomment these
+            localStorage.removeItem("sessionId");
           }
         };
         httpRequest.onerror = function () {
-          localStorage.removeItem("sessionId"); //TODO: uncomment these
+          localStorage.removeItem("sessionId");
         };
         //httpRequest.send(JSON.stringify({"username": "username"}));
         httpRequest.send(JSON.stringify({ "sessionId": localStorage.getItem("sessionId") }));
@@ -368,13 +389,11 @@ var Chart = function (_React$Component) {
           localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
           successHandler();
         } else if (httpRequest.status >= 400) {
-          console.log("What the fuck.");
           failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
         }
       };
       httpRequest.onerror = function () {
-        console.log("What the fuck.");
-        failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        failureHandler('Unidentified failure.');
       };
       httpRequest.send(JSON.stringify({ "username": username, "password": password, "userData": userData }));
     }
@@ -412,13 +431,11 @@ var Chart = function (_React$Component) {
           that.userDataFromSessionCookie(pageLoadHandler);
           that.setLoginStatusAndViewerType(true, 'owner');
         } else if (httpRequest.status >= 400) {
-          console.log("actual failure");
           failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
         }
       };
       httpRequest.onerror = function () {
-        console.log("actual failure");
-        failureHandler(httpRequest.responseText.replace(/(\n)/gm, "").replace(/(\")/gm, ""));
+        failureHandler('Unidentified failure.');
       };
       httpRequest.send(JSON.stringify({ "username": username, "password": password }));
     }
@@ -814,6 +831,7 @@ var LoginRegisterModal = function (_React$Component2) {
   }, {
     key: "loginRegistrationSuccessHandler",
     value: function loginRegistrationSuccessHandler() {
+      this.setState({ warningMessage: '' });
       this.close();
     }
   }, {

@@ -19,7 +19,10 @@ class Chart extends React.Component {
     this.contactInfo = 'qtprime@qtchart.com';
 
     this.requestChartImage = this.requestChartImage.bind(this);
-    this.pageLoadHandler   = this.pageLoadHandler.bind(this);
+
+    this.pageLoadHandler                     = this.pageLoadHandler.bind(this);
+    this.loginConfirmationHandler            = this.loginConfirmationHandler.bind(this);
+    this.pageLoadAndLoginConfirmationHandler = this.pageLoadAndLoginConfirmationHandler.bind(this);
 
     this.createPage = this.createPage.bind(this);
     this.login      = this.login.bind(this);
@@ -88,16 +91,19 @@ class Chart extends React.Component {
 
     this.jsonLoadId = '';
 
+    this.state.loggedIn = false;
+
     let restParams = new URLSearchParams(window.location.search.slice(1));
 
     if (restParams.has("user")) {
       let username = restParams.get("user");
 
       this.userDataFromUsername(username,this.pageLoadHandler);
+      this.userDataFromSessionCookie(this.loginConfirmationHandler);
       this.state.viewerType = "visitor";
       this.state.username   = username;
     } else {
-      this.userDataFromSessionCookie(this.pageLoadHandler);
+      this.userDataFromSessionCookie(this.pageLoadAndLoginConfirmationHandler);
       this.state.viewerType = "owner";
       this.state.username   = '';
     }
@@ -266,7 +272,18 @@ class Chart extends React.Component {
 
   pageLoadHandler(initialData) {
     this.jsonLoadId = Math.random();
-    this.setState({loadedJson: initialData, loggedIn: true});
+    this.setState({loadedJson: initialData});
+  }
+
+  //basically ignores the user data, just confirms that the user is logged in
+  //TODO: new request function which just returns whether your session is valid
+  loginConfirmationHandler(initialData) {
+    this.setState({loggedIn: true});
+  }
+
+  pageLoadAndLoginConfirmationHandler(initialData) {
+    this.pageLoadHandler(initialData);
+    this.loginConfirmationHandler(initialData);
   }
 
   createPage(username,password,successHandler,failureHandler) {
@@ -302,11 +319,11 @@ class Chart extends React.Component {
           username    = httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,"");
           that.userDataFromUsername(username,handler);
         } else if (httpRequest.status>=400) {
-          localStorage.removeItem("sessionId"); //TODO: uncomment these
+          localStorage.removeItem("sessionId");
         }
       };
       httpRequest.onerror = function() {
-        localStorage.removeItem("sessionId"); //TODO: uncomment these
+        localStorage.removeItem("sessionId");
       };
       //httpRequest.send(JSON.stringify({"username": "username"}));
       httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem("sessionId")}));
@@ -350,13 +367,11 @@ class Chart extends React.Component {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
         successHandler();
       } else if (httpRequest.status>=400) {
-        console.log("What the fuck.");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
-      console.log("What the fuck.");
-      failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      failureHandler('Unidentified failure.');
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password, "userData": userData}));
   }
@@ -392,13 +407,11 @@ class Chart extends React.Component {
         that.userDataFromSessionCookie(pageLoadHandler);
         that.setLoginStatusAndViewerType(true,'owner');
       } else if (httpRequest.status>=400) {
-        console.log("actual failure");
         failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
     };
     httpRequest.onerror = function() {
-      console.log("actual failure");
-      failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      failureHandler('Unidentified failure.');
     };
     httpRequest.send(JSON.stringify({"username": username, "password": password}));
   }
@@ -644,6 +657,7 @@ class LoginRegisterModal extends React.Component {
   }
 
   loginRegistrationSuccessHandler() {
+    this.setState({warningMessage: ''});
     this.close();
   }
 
