@@ -2904,6 +2904,7 @@ var BulletList = function (_React$Component21) {
     _this30.newBullet = _this30.newBullet.bind(_this30);
 
     //two sets of component keys -- used for forcing re-mounts
+    //TODO: phase this out -- remounts no longer necessary
     _this30.keysA = [];
     _this30.keysB = [];
     for (var i = 0; i < _this30.props.maxBullets; i++) {
@@ -2923,6 +2924,8 @@ var BulletList = function (_React$Component21) {
     var bulletListJson = {};
     bulletListJson[_this30.props.name.toLowerCase()] = [''];
     _this30.props.retrieve(bulletListJson);
+
+    _this30.contentsLoadKey = '';
 
     _this30.state = {
       bulletContents: bulletContents
@@ -2999,11 +3002,19 @@ var BulletList = function (_React$Component21) {
 
         if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
           bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
+        } else if (nextProps.singleBulletList) {
+          bulletContents[0] = '';
         } else {
           for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
             bulletContents[index] = nextProps.loadedJson[nextProps.name.toLowerCase()][index];
           }
         }
+
+        var bulletListJson = {};
+        bulletListJson[this.props.name.toLowerCase()] = bulletContents;
+        this.props.retrieve(bulletListJson);
+
+        this.contentsLoadKey = nextProps.loadedJson['id'];
 
         this.setState({ bulletContents: bulletContents });
       }
@@ -3031,7 +3042,7 @@ var BulletList = function (_React$Component21) {
           isEmpty = true;
         }
 
-        bulletSetAndNewBulletButton.push(React.createElement(Bullet, { key: this.keySet[i], preloadedContents: this.state.bulletContents[i], retrieve: this.retrieve, closeBullet: this.closeBullet, index: i, interactionFrozen: this.props.interactionFrozen, singleBulletList: this.props.singleBulletList, isEmpty: isEmpty }));
+        bulletSetAndNewBulletButton.push(React.createElement(Bullet, { key: this.keySet[i], preloadedContents: this.state.bulletContents[i], contentsLoadKey: this.contentsLoadKey, retrieve: this.retrieve, closeBullet: this.closeBullet, index: i, interactionFrozen: this.props.interactionFrozen, singleBulletList: this.props.singleBulletList, isEmpty: isEmpty }));
       }
 
       //add a little space between the bullet points and the new bullet button
@@ -3098,8 +3109,6 @@ var SingleBulletList = function (_React$Component22) {
   }, {
     key: "render",
     value: function render() {
-      //console.log(this.props.loadedJson);
-
       return React.createElement(BulletList, { name: this.props.name, retrieve: this.retrieve, interactionFrozen: this.props.interactionFrozen, emptyElementsHidden: this.props.emptyElementsHidden, maxBullets: 1, singleBulletList: true, loadedJson: this.props.loadedJson });
     }
   }]);
@@ -3133,7 +3142,7 @@ var Bullet = function (_React$Component23) {
         null,
         "\u2022\xA0"
       ));
-      contents.push(React.createElement(BulletEntryBox, { retrieve: this.props.retrieve, index: this.props.index, preloadedContents: this.props.preloadedContents, interactionFrozen: this.props.interactionFrozen, singleBulletList: this.props.singleBulletList }));
+      contents.push(React.createElement(BulletEntryBox, { retrieve: this.props.retrieve, index: this.props.index, preloadedContents: this.props.preloadedContents, contentsLoadKey: this.props.contentsLoadKey, interactionFrozen: this.props.interactionFrozen }));
 
       if (!this.props.singleBulletList) {
         contents.push(React.createElement(CloseBulletButton, { closeBullet: this.props.closeBullet, index: this.props.index, interactionFrozen: this.props.interactionFrozen }));
@@ -3153,13 +3162,32 @@ var Bullet = function (_React$Component23) {
 var BulletEntryBox = function (_React$Component24) {
   _inherits(BulletEntryBox, _React$Component24);
 
-  function BulletEntryBox() {
+  function BulletEntryBox(props) {
     _classCallCheck(this, BulletEntryBox);
 
-    return _possibleConstructorReturn(this, (BulletEntryBox.__proto__ || Object.getPrototypeOf(BulletEntryBox)).apply(this, arguments));
+    var _this33 = _possibleConstructorReturn(this, (BulletEntryBox.__proto__ || Object.getPrototypeOf(BulletEntryBox)).call(this, props));
+
+    _this33.changeValue = _this33.changeValue.bind(_this33);
+
+    _this33.state = {
+      value: _this33.props.preloadedContents
+    };
+    return _this33;
   }
 
   _createClass(BulletEntryBox, [{
+    key: "componentWillReceiveProps",
+    value: function componentWillReceiveProps(nextProps) {
+      if (this.props.contentsLoadKey != nextProps.contentsLoadKey) {
+        this.setState({ value: nextProps.preloadedContents });
+      }
+    }
+  }, {
+    key: "changeValue",
+    value: function changeValue(event) {
+      this.setState({ value: event.target.value });
+    }
+  }, {
     key: "render",
     value: function render() {
       var _this34 = this;
@@ -3167,7 +3195,7 @@ var BulletEntryBox = function (_React$Component24) {
       return React.createElement(
         "div",
         { className: "bulletEntry" },
-        React.createElement("input", { type: "text", defaultValue: this.props.preloadedContents, disabled: this.props.interactionFrozen, onBlur: function onBlur(event) {
+        React.createElement("input", { type: "text", value: this.state.value, disabled: this.props.interactionFrozen, onChange: this.changeValue, onBlur: function onBlur(event) {
             _this34.props.retrieve(_this34.props.index, event);
           }, maxLength: BulletEntryBox.maxLength })
       );

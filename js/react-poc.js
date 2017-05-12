@@ -2077,6 +2077,7 @@ class BulletList extends React.Component {
     this.newBullet   = this.newBullet.bind(this);
 
     //two sets of component keys -- used for forcing re-mounts
+    //TODO: phase this out -- remounts no longer necessary
     this.keysA = [];
     this.keysB = [];
     for (let i=0;i<this.props.maxBullets;i++) {
@@ -2096,6 +2097,8 @@ class BulletList extends React.Component {
     var bulletListJson = {};
     bulletListJson[this.props.name.toLowerCase()] = [''];
     this.props.retrieve(bulletListJson);
+
+    this.contentsLoadKey = '';
 
     this.state = {
       bulletContents: bulletContents
@@ -2163,11 +2166,19 @@ class BulletList extends React.Component {
 
       if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
         bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
+      } else if(nextProps.singleBulletList) {
+        bulletContents[0] = '';
       } else {
         for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
           bulletContents[index] = nextProps.loadedJson[nextProps.name.toLowerCase()][index];
         }
       }
+
+      var bulletListJson = {};
+      bulletListJson[this.props.name.toLowerCase()] = bulletContents;
+      this.props.retrieve(bulletListJson);
+
+      this.contentsLoadKey = nextProps.loadedJson['id'];
 
       this.setState({bulletContents: bulletContents});
     }
@@ -2194,7 +2205,7 @@ class BulletList extends React.Component {
         isEmpty = true;
       }
 
-      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
+      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} contentsLoadKey={this.contentsLoadKey} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
     }
 
     //add a little space between the bullet points and the new bullet button
@@ -2246,8 +2257,6 @@ class SingleBulletList extends React.Component {
   }
 
   render() {
-    //console.log(this.props.loadedJson);
-
     return (
       <BulletList name={this.props.name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} loadedJson={this.props.loadedJson} />
     );
@@ -2264,7 +2273,7 @@ class Bullet extends React.Component {
 
     var contents = [];
     contents.push(<span>•&nbsp;</span>);
-    contents.push(<BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} />);
+    contents.push(<BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} contentsLoadKey={this.props.contentsLoadKey} interactionFrozen={this.props.interactionFrozen} />);
 
     if (!this.props.singleBulletList) {
       contents.push(<CloseBulletButton closeBullet={this.props.closeBullet} index={this.props.index} interactionFrozen={this.props.interactionFrozen} />);
@@ -2279,12 +2288,32 @@ class Bullet extends React.Component {
 }
 
 class BulletEntryBox extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.changeValue = this.changeValue.bind(this);
+
+    this.state = {
+      value: this.props.preloadedContents
+    };
+  }
+
   static get maxLength() { return 20; }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.contentsLoadKey!=nextProps.contentsLoadKey) {
+      this.setState({value: nextProps.preloadedContents});
+    }
+  }
+
+  changeValue(event) {
+    this.setState({value: event.target.value});
+  }
 
   render() {
     return (
       <div className="bulletEntry">
-        <input type="text" defaultValue={this.props.preloadedContents} disabled={this.props.interactionFrozen} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} maxLength={BulletEntryBox.maxLength} />
+        <input type="text" value={this.state.value} disabled={this.props.interactionFrozen} onChange={this.changeValue} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} maxLength={BulletEntryBox.maxLength} />
       </div>
     );
   }
