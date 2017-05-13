@@ -644,6 +644,14 @@ var Chart = function (_React$Component) {
               } },
             "Update"
           ));
+          footerButtons.push(React.createElement("div", { className: "buttonSpacingDiv" }));
+          footerButtons.push(React.createElement(
+            "button",
+            { type: "button", name: "url", onClick: function onClick() {
+                _this2.showFailedRequestWarning('Link: ' + window.location.hostname + '/?user=' + _this2.state.username);
+              } },
+            "Show Link"
+          ));
         } else {
           footerButtons.push(React.createElement(
             "button",

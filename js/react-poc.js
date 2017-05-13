@@ -607,6 +607,8 @@ class Chart extends React.Component {
     if (this.state.viewerType=="owner") {
       if (this.state.loggedIn) {
         footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
+        footerButtons.push(<div className="buttonSpacingDiv"></div>);
+        footerButtons.push(<button type="button" name="url" onClick={() => {this.showFailedRequestWarning('Link: ' + window.location.hostname + '/?user=' + this.state.username)}}>Show Link</button>);
       } else {
         footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Save Page</button>);
       }
