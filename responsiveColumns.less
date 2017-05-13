@@ -28,7 +28,11 @@
   .titleText .ultimateTd h2  { font-size: @baseCellTextSize*@whole*1.44; }
   .titleText .infographTd h2 { font-size: @baseCellTextSize*@whole*1.44; }
 
-  .chart.fillSmallScreen { width: 98%; }
+  .chart.fillSmallScreen { width: 98vw; }
+
+  .footerButtons button { display: block; width: 98vw; }
+  .footerButtons div    { display: block; height: 2px; }
+  .chartFooter          { margin-bottom: 2px; margin-top: 2px; }
 }
 
 @media @sm {
@@ -37,6 +41,7 @@
   .checkboxChoice.left  { border-radius: @baseBorderRadius*@half 0px 0px @baseBorderRadius*@half; }
   .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@half @baseBorderRadius*@half 0px; }
   .otherInfo tbody      { display: none; }
+  .chartFooter          { margin-bottom: 10px; margin-top: 10px; }
 }
 
 @media @md {
@@ -44,6 +49,7 @@
   .checkboxChoice       { height: @baseCheckboxHeight*@third; }
   .checkboxChoice.left  { border-radius: @baseBorderRadius*@third 0px 0px @baseBorderRadius*@third; }
   .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@third @baseBorderRadius*@third 0px; }
+  .chartFooter          { margin-bottom: 10px; margin-top: 10px; }
 }
 
 @media @lg {
@@ -51,6 +57,7 @@
   .checkboxChoice       { height: @baseCheckboxHeight*@quarter; }
   .checkboxChoice.left  { border-radius: @baseBorderRadius*@quarter 0px 0px @baseBorderRadius*@quarter; }
   .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@quarter @baseBorderRadius*@quarter 0px; }
+  .chartFooter          { margin-bottom: 10px; margin-top: 10px; }
 }
 
 @media @xl {
@@ -58,4 +65,5 @@
   .checkboxChoice       { height: @baseCheckboxHeight*@sixth; }
   .checkboxChoice.left  { border-radius: @baseBorderRadius*@sixth 0px 0px @baseBorderRadius*@sixth; }
   .checkboxChoice.right { border-radius: 0px @baseBorderRadius*@sixth @baseBorderRadius*@sixth 0px; }
+  .chartFooter          { margin-bottom: 10px; margin-top: 10px; }
 }
