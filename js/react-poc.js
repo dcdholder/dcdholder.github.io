@@ -13,12 +13,20 @@ class Chart extends React.Component {
     this.retrieve = this.retrieve.bind(this);
 
     this.tagLine = "The Ultimate QT Infograph";
-    this.webVersion  = "1.1 Alpha";
+    this.webVersion  = "2.0 Alpha";
     this.chartVersion = "3.0";
 
-    this.adminEmail = 'qtprime@qtchart.com';
+    this.contactInfo = 'qtprime@qtchart.com';
 
     this.requestChartImage = this.requestChartImage.bind(this);
+
+    this.pageLoadHandler                     = this.pageLoadHandler.bind(this);
+    this.loginConfirmationHandler            = this.loginConfirmationHandler.bind(this);
+    this.pageLoadAndLoginConfirmationHandler = this.pageLoadAndLoginConfirmationHandler.bind(this);
+
+    this.createPage = this.createPage.bind(this);
+    this.login      = this.login.bind(this);
+    this.logout     = this.logout.bind(this);
 
     //TODO: I'm planning on rolling the field format generation into the back-end, these hard-coded lists will disappear
     this.categoryMulticolorCheckboxMap = {'Emotional': {'Quirks':
@@ -80,20 +88,56 @@ class Chart extends React.Component {
       interactionFrozen: false,
       emptyElementsHidden: false
     };
+
+    this.jsonLoadId = '';
+
+    this.state.loggedIn = false;
+
+    let restParams = new URLSearchParams(window.location.search.slice(1));
+
+    this.state.username = '';
+    if (restParams.has("user")) {
+      let username = restParams.get("user");
+
+      this.userDataFromUsername(username,this.pageLoadHandler);
+      this.userDataFromSessionCookie(this.loginConfirmationHandler);
+      this.state.viewerType = "visitor";
+    } else {
+      this.userDataFromSessionCookie(this.pageLoadAndLoginConfirmationHandler);
+      this.state.viewerType = "owner";
+    }
+
+    if (this.state.viewerType=="visitor") {
+      this.state.interactionFrozen   = true;
+      this.state.emptyElementsHidden = true;
+    }
   }
 
   //static get restServerDomain() { return 'http://127.0.0.1:5000/'; }
-  static get restServerDomain() { return 'http://image-api.qtchart.com/'; }
+  static get webApiDomain()   { return 'http://web-api.qtchart.com';   }
+  static get imageApiDomain() { return 'http://image-api.qtchart.com'; }
+
+  static get imageRequestUri() { return Chart.imageApiDomain + '/new'; }
+
+  static get userDataRequestUri()       { return Chart.webApiDomain + '/user/read';     }
+  static get userCreationRequestUri()   { return Chart.webApiDomain + '/user/create';   }
+  static get userDataUpdateRequestUri() { return Chart.webApiDomain + '/user/update';   }
+  static get userLoginRequestUri()      { return Chart.webApiDomain + '/user/login';    }
+  static get userLogoutRequestUri()     { return Chart.webApiDomain + '/user/logout';   }
+  static get userUsernameRequestUri()   { return Chart.webApiDomain + '/user/username'; }
+  static get userDeleteRequestUri()     { return Chart.webApiDomain + '/user/delete';   }
+
   static get defaultGenerateButtonText() { return 'Download'; }
   static get generateAnimationTick() {return 1000; }
 
-  loadInJson(json) {
-    this.setState({ loadedJson: json });
-  }
-
   getLoadedJsonForChild(targetName) {
+    //console.log(this.state.loadedJson);
     if (targetName.toLowerCase() in this.state.loadedJson) {
-      return this.state.loadedJson[targetName.toLowerCase()];
+      var jsonWithId = {};
+      jsonWithId[targetName.toLowerCase()] = JSON.parse(JSON.stringify(this.state.loadedJson))[targetName.toLowerCase()];
+      jsonWithId["id"] = this.jsonLoadId;
+      //console.log(jsonWithId);
+      return jsonWithId;
     } else {
       return {};
     }
@@ -166,8 +210,8 @@ class Chart extends React.Component {
           }
 
           //whether 'you' or 'them', every MC CB in the set should be filled out
-          if (this.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
-            if (this.capitalize(elementName) in this.categoryMulticolorCheckboxMap[this.capitalize(categoryName)]) {
+          if (Chart.capitalize(categoryName) in this.categoryMulticolorCheckboxMap) {
+            if (Chart.capitalize(elementName) in this.categoryMulticolorCheckboxMap[Chart.capitalize(categoryName)]) {
               if (noneElementExists) {
                 missingElements[targetName][categoryName].push(elementName);
                 continue;
@@ -225,8 +269,205 @@ class Chart extends React.Component {
     return true;
   }
 
-  imageRequestUri() {
-    return Chart.restServerDomain + 'new';
+  pageLoadHandler(username,initialData) {
+    this.jsonLoadId = Math.random();
+    this.setState({username: username, loadedJson: initialData});
+  }
+
+  //basically ignores the user data, just confirms that the user is logged in
+  //TODO: new request function which just returns whether your session is valid
+  loginConfirmationHandler(username,initialData) {
+    this.setState({loggedIn: true});
+  }
+
+  pageLoadAndLoginConfirmationHandler(username,initialData) {
+    this.pageLoadHandler(username,initialData);
+    this.loginConfirmationHandler(username,initialData);
+  }
+
+  createPage(username,password,successHandler,failureHandler) {
+    this.createPageServerSide(username,password,this.json,successHandler,failureHandler);
+  }
+
+  deleteUser(username,password) {
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('DELETE', Chart.userDeleteRequestUri, true);
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "text";
+    httpRequest.send(JSON.stringify({"username": username, "password": password}));
+  }
+
+  userDataFromSessionCookie(handler) { //returns nothing and deletes session cookie on error
+    var sessionId;
+    var username;
+    var initialData = {};
+
+    var httpRequest = new XMLHttpRequest();
+
+    if (localStorage.getItem("sessionId") !== null) {
+      httpRequest.open('POST', Chart.userUsernameRequestUri, true); //need the username before we can do anything else
+      httpRequest.setRequestHeader('Content-Type', 'application/json');
+      //httpRequest.responseType = "text";
+
+      //console.log(JSON.stringify({"sessionId": localStorage.getItem("sessionId")}));
+
+      let that = this;
+      httpRequest.onreadystatechange = function() {
+        if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+          username    = httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,"");
+          that.userDataFromUsername(username,handler);
+        } else if (httpRequest.status>=400) {
+          localStorage.removeItem("sessionId");
+        }
+      };
+      httpRequest.onerror = function() {
+        localStorage.removeItem("sessionId");
+      };
+      //httpRequest.send(JSON.stringify({"username": "username"}));
+      httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem("sessionId")}));
+    }
+  }
+
+  userDataFromUsername(username,handler) {
+    var initialData = '';
+
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('POST', Chart.userDataRequestUri, true); //need the data before we can load components
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "json";
+
+    let that = this;
+    httpRequest.onreadystatechange = function() {
+      if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+        initialData = JSON.parse(httpRequest.response);
+        handler(username,initialData);
+      } else if (httpRequest.status>=400) {
+        localStorage.removeItem("sessionId");
+      }
+    };
+    httpRequest.onerror = function() {
+      localStorage.removeItem("sessionId");
+    };
+    httpRequest.send(JSON.stringify({'username': username}));
+  }
+
+  createPageServerSide(username,password,userData,successHandler,failureHandler) {
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('POST', Chart.userCreationRequestUri, true);
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "text";
+
+    let that = this;
+    httpRequest.onreadystatechange = function() {
+      if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
+        localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+        successHandler();
+        that.setState({loggedIn: true});
+      } else if (httpRequest.status>=400) {
+        failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      }
+    };
+    httpRequest.onerror = function() {
+      failureHandler('Unidentified failure.');
+    };
+    httpRequest.send(JSON.stringify({"username": username, "password": password, "userData": userData}));
+  }
+
+  logout() {
+    this.setLoginStatusAndViewerType(false,'owner');
+
+    localStorage.removeItem('sessionId');
+
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('DELETE', Chart.userLogoutRequestUri, true);
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "text";
+    httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem('sessionId')}));
+  }
+
+  login(username,password,pageLoadHandler,successHandler,failureHandler) {
+    localStorage.removeItem('sessionId');
+
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('POST', Chart.userLoginRequestUri, true);
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "text";
+
+    //grab our session from the login response
+    let that = this;
+    httpRequest.onreadystatechange = function() {
+      if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
+        localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+        successHandler();
+        that.userDataFromSessionCookie(pageLoadHandler);
+        that.setLoginStatusAndViewerType(true,'owner');
+      } else if (httpRequest.status>=400) {
+        failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      }
+    };
+    httpRequest.onerror = function() {
+      failureHandler('Unidentified failure.');
+    };
+    httpRequest.send(JSON.stringify({"username": username, "password": password}));
+  }
+
+  setLoginStatusAndViewerType(loggedIn,viewerType) {
+    var loadedJson = this.state.loadedJson;
+    var username   = this.state.username;
+    if (!loggedIn) {
+      this.jsonLoadId = Math.random();
+      loadedJson = {};
+
+      if (viewerType==="owner") {
+        username = '';
+      }
+    }
+
+    if (viewerType==="visitor") {
+      this.setState({
+        loggedIn: loggedIn,
+        viewerType: viewerType,
+        loadedJson: loadedJson,
+        username: username,
+        interactionFrozen:   true,
+        emptyElementsHidden: true
+      });
+    } else if(viewerType==="owner") {
+      this.setState({
+        loggedIn: loggedIn,
+        viewerType: viewerType,
+        loadedJson: loadedJson,
+        username: username,
+        interactionFrozen:   false,
+        emptyElementsHidden: false
+      });
+    }
+  }
+
+  updatePageServerSide() {
+    var httpRequest = new XMLHttpRequest();
+
+    httpRequest.open('POST', Chart.userDataUpdateRequestUri, true);
+    httpRequest.setRequestHeader("Content-type", "application/json");
+    httpRequest.responseType = "text";
+
+    let that = this;
+    httpRequest.onreadystatechange = function() {
+      if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 200) {
+        localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      } else if (httpRequest.status>=400) {
+        that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      }
+    };
+    httpRequest.onerror = function() {
+      that.showFailedRequestWarning('Unidentified failure.');
+    };
+    httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem("sessionId"), "userData": this.json}));
   }
 
   showGenerateWaitAnimation() {
@@ -260,18 +501,18 @@ class Chart extends React.Component {
     for (let targetName in missingElement) {
       for (let categoryName in missingElement[targetName]) {
         let elementName = missingElement[targetName][categoryName];
-        this.setState({errorMessage: 'Missing field in \'' + this.capitalize(elementName) + '\' under \'' + this.capitalize(targetName) + '\' → \'' + this.capitalize(categoryName) + '\'', errorMessageDisplayMode: 'on'});
+        this.setState({errorMessage: 'Missing field in \'' + Chart.capitalize(elementName) + '\' under \'' + Chart.capitalize(targetName) + '\' → \'' + Chart.capitalize(categoryName) + '\'', errorMessageDisplayMode: 'on'});
         return;
       }
     }
   }
 
-  showFailedRequestWarning() {
-    this.setState({errorMessage: 'Server error, try again later.', errorMessageDisplayMode: 'on'});
+  showFailedRequestWarning(errorMessage) {
+    this.setState({errorMessage: errorMessage, errorMessageDisplayMode: 'on'});
     window.scrollTo(0,document.body.scrollHeight);
   }
 
-  capitalize(string) {
+  static capitalize(string) {
     var words = string.toLowerCase().split(' ');
     for (let i=0;i<words.length;i++) {
       let letters = words[i].split('');
@@ -315,7 +556,7 @@ class Chart extends React.Component {
 
     this.showGenerateWaitAnimation();
     //console.log(this.imageRequestUri());
-    httpRequest.open('POST', this.imageRequestUri(), true);
+    httpRequest.open('POST', Chart.imageRequestUri, true);
     httpRequest.setRequestHeader("Content-type", "application/json");
     httpRequest.responseType = "blob";
 
@@ -329,13 +570,13 @@ class Chart extends React.Component {
         saveAs(imageBlob, "chart.jpg");
       } else if (httpRequest.status>=400) { //something went wrong
         //console.log('Failed response.');
-        that.showFailedRequestWarning();
+        that.showFailedRequestWarning('Could not contact image generation server -- try again.');
         that.hideGenerateWaitAnimation();
         that.allowDownloadClick = true;
       }
     };
     httpRequest.onerror = function() {
-      that.showFailedRequestWarning();
+      that.showFailedRequestWarning('Could not contact image generation server -- try again.');
       that.hideGenerateWaitAnimation();
       that.allowDownloadClick = true;
     };
@@ -343,25 +584,50 @@ class Chart extends React.Component {
     httpRequest.send(JSON.stringify(this.jsonFrontend2BackendRepresentation()));
   }
 
+  openLoginPrompt() {
+    $('#loginModal').modal('show');
+  }
+
+  openRegisterPrompt() {
+    $('#registerModal').modal('show');
+  }
+
   render() {
     var targets = [];
     var possibleTargets = ["You","Them"];
     for (let i=0;i<possibleTargets.length;i++) {
-      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
+      targets.push(<Target key={possibleTargets[i]} targetName={possibleTargets[i]} username={this.state.username} categoryElementMap={this.categoryElementMap} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(possibleTargets[i])} interactionFrozen={this.state.interactionFrozen} emptyElementsHidden={this.state.emptyElementsHidden} />);
     }
 
     var footerButtons = [];
     footerButtons.push(<button type="button" name="download" onClick={this.requestChartImage}>{this.state['generateButtonText']}</button>);
+
+    footerButtons.push(<div className="buttonSpacingDiv"></div>);
+
+    if (this.state.viewerType=="owner") {
+      if (this.state.loggedIn) {
+        footerButtons.push(<button type="button" name="Update" onClick={() => {this.updatePageServerSide()}}>Update</button>);
+      } else {
+        footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Save Page</button>);
+      }
+    }
+
     if (this.developmentMode) {
+      footerButtons.push(<button type="button" name="Logout" onClick={() => {this.logout()}}>Logout</button>);
+      footerButtons.push(<button type="button" name="loginModalButton" onClick={() => {this.openLoginPrompt()}}>Log Modal</button>);
       footerButtons.push(<button type="button" name="freezeUnfreeze" onClick={() => {this.setState({interactionFrozen: !this.state.interactionFrozen})}}>Freezer</button>);
       footerButtons.push(<button type="button" name="hideUnhide" onClick={() => {this.setState({emptyElementsHidden: !this.state.emptyElementsHidden})}}>Hider</button>);
+      footerButtons.push(<button type="button" name="deleteUserA" onClick={() => this.deleteUser("testusera","password")}>DeleteUserA</button>);
+      footerButtons.push(<button type="button" name="deleteUserB" onClick={() => this.deleteUser("testuserb","password")}>DeleteUserB</button>);
     }
 
     return (
       <div className="chart fillSmallScreen">
-        <ChartName webVersion={this.webVersion} chartVersion={this.chartVersion}/>
+        <ChartName webVersion={this.webVersion} contactInfo={this.contactInfo} viewerType={this.state.viewerType} loggedIn={this.state.loggedIn} logout={this.logout} openLoginPrompt={this.openLoginPrompt} />
         {targets}
         <div className="chartFooter">
+          <LoginRegisterModal modalType={'login'} loginOrRegister={this.login} pageLoadHandler={this.pageLoadHandler} />
+          <LoginRegisterModal modalType={'register'} loginOrRegister={this.createPage} pageLoadHandler={this.pageLoadHandler} />
           <div className="footerButtons">
             {footerButtons}
           </div>
@@ -372,8 +638,120 @@ class Chart extends React.Component {
   }
 }
 
+//TODO: the modal needs to define its own handler for login / registration (so that it can display the right messages)
+//props: modalType, loginOrRegister (handler)
+class LoginRegisterModal extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.username = '';
+    this.password = '';
+
+    this.loginRegistrationFailureHandler = this.loginRegistrationFailureHandler.bind(this);
+    this.loginRegistrationSuccessHandler = this.loginRegistrationSuccessHandler.bind(this);
+
+    this.state = {
+      warningMessage: ''
+    };
+  }
+
+  usernameChangeHandler(event) {
+    this.username = event.target.value;
+  }
+
+  passwordChangeHandler(event) {
+    this.password = event.target.value;
+  }
+
+  loginRegistrationFailureHandler(responseText) {
+    this.setState({warningMessage: 'Can\'t ' + this.props.modalType + ' - ' + responseText});
+  }
+
+  loginRegistrationSuccessHandler() {
+    this.setState({warningMessage: ''});
+    this.close();
+  }
+
+  close() {
+    $('#' + this.props.modalType + "Modal").modal('toggle');
+  }
+
+  render() {
+    var requestButtonJsx;
+    if(this.props.modalType=="login") {
+      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.props.pageLoadHandler, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
+    } else if (this.props.modalType=="register") {
+      requestButtonJsx = <button name={this.props.modalType} onClick={() => {this.props.loginOrRegister(this.username, this.password, this.loginRegistrationSuccessHandler,this.loginRegistrationFailureHandler)}}>{Chart.capitalize(this.props.modalType)}</button>
+    }
+
+    return (
+      <div className="modal fade" id={this.props.modalType + "Modal"} tabindex="-1" role="dialog" aria-labelledby={this.props.modalType + "ModalAria"} aria-hidden="true">
+        <div className="modal-dialog modal-sm" role="document">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4 className="modal-title" id={this.props.modalType + "ModalAria"}>{Chart.capitalize(this.props.modalType)}</h4>
+            </div>
+
+            <div className="modal-body">
+              <div>
+                <label>Username: <input type="text" name="username" onChange={(event) => {this.usernameChangeHandler(event)}} /></label>
+              </div>
+              <div>
+                <label>Password: <input type="text" name="password" onChange={(event) => {this.passwordChangeHandler(event)}} /></label>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <div>
+                <button name="close" onClick={() => this.close()}>Close</button>
+                <div className="buttonSpacingDiv"></div>
+                {requestButtonJsx}
+              </div>
+              <div>
+                {this.state.warningMessage}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+//props: webVersion, contactInfo, baseUrl, viewerType, loggedIn, logout(), openLoginPrompt()
 class ChartName extends React.Component {
   render() {
+    var buttonA;
+    var buttonB;
+
+    if (this.props.viewerType=="visitor") {
+      if (this.props.loggedIn) {
+        buttonA = ''
+        buttonB = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>Your&nbsp;Page</button>
+      } else {
+        buttonA = <button onClick={() => {window.location.href = window.location.protocol + '//' + window.location.host;}}>New&nbsp;Chart</button>
+        buttonB = <button onClick={() => {this.props.openLoginPrompt()}}>Login</button>
+      }
+    } else if(this.props.viewerType=="owner") {
+      if (this.props.loggedIn) {
+        buttonB = <button onClick={() => {this.props.logout()}}>Logout</button>
+      } else {
+        buttonB = <button onClick={() => {this.props.openLoginPrompt()}}>Login</button>
+      }
+      buttonA = ''
+    }
+
+    var buttons = [];
+    if (buttonA!='') {
+      buttons.push(buttonA);
+    }
+    if (buttonA!='' && buttonB!='') {
+      buttons.push(<div className="buttonSpacingDiv"></div>)
+    }
+    if (buttonB!='') {
+      buttons.push(buttonB);
+    }
+
     return (
       <div className="chartName">
         <div className="titleText">
@@ -389,19 +767,29 @@ class ChartName extends React.Component {
             </tbody>
           </table>
         </div>
-        <div className="versionInfo">
+        <div className="otherInfo">
           <table>
             <tbody>
               <tr>
-                <td colSpan="2" className="paddingTd">&nbsp;</td>
-              </tr>
-              <tr>
-                <td className="webVersionTd">Web Version:&nbsp;</td>
+                <td className="webVersionTd">Site Version:&nbsp;</td>
                 <td className="versionNumber">{this.props.webVersion}</td>
               </tr>
               <tr>
-                <td className="chartVersionTd">Chart Version:&nbsp;</td>
-                <td className="versionNumber">{this.props.chartVersion}</td>
+                <td className="contactInfoTd">Contact:&nbsp;</td>
+                <td className="contactInfo">{this.props.contactInfo}</td>
+              </tr>
+              <tr>
+                <td colSpan={2}>
+                  <div style={{height: 5}}>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="buttonTd" colSpan={2}>
+                  <div className="cornerButtons">
+                    {buttons}
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -426,8 +814,17 @@ class Target extends React.Component {
   }
 
   getLoadedJsonForChild(categoryName) {
-    if (categoryName.toLowerCase() in this.props.loadedJson) {
-      return this.props.loadedJson[categoryName.toLowerCase()];
+    //console.log(this.props.loadedJson);
+    if (this.props.targetName.toLowerCase() in this.props.loadedJson) {
+      if (categoryName.toLowerCase() in this.props.loadedJson[this.props.targetName.toLowerCase()]) {
+        var jsonWithId = {};
+        jsonWithId[categoryName.toLowerCase()] = this.props.loadedJson[this.props.targetName.toLowerCase()][categoryName.toLowerCase()];
+        jsonWithId["id"] = this.props.loadedJson["id"];
+        //console.log(jsonWithId);
+        return jsonWithId;
+      } else {
+        return {};
+      }
     } else {
       return {};
     }
@@ -465,10 +862,15 @@ class Target extends React.Component {
       categories.push(<Category key={finalCategoryName} targetName={this.props.targetName} categoryName={finalCategoryName} elementMap={elementMapByCategoryByType[finalCategoryName]} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(finalCategoryName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
+    var targetTitle = <h2><b>{this.props.targetName}</b></h2>
+    if (this.props.targetName.toLowerCase()=="you" && this.props.username!='') {
+      targetTitle = <h2><b>{this.props.targetName + ': '}</b>{'(' + this.props.username + ')'}</h2>
+    }
+
     return (
       <div className="target">
         <div className="targetName">
-          <h2><b>{this.props.targetName}</b></h2>
+          {targetTitle}
         </div>
         <div className="targetBody">
           {categories}
@@ -492,10 +894,18 @@ class Category extends React.Component {
   }
 
   getLoadedJsonForChild(elementName) {
-    if (elementName.toLowerCase() in this.props.loadedJson) {
-      return this.props.loadedJson[elementName.toLowerCase()];
+    //console.log(this.props.loadedJson);
+    if (this.props.categoryName.toLowerCase() in this.props.loadedJson) {
+      if (elementName.toLowerCase() in this.props.loadedJson[this.props.categoryName.toLowerCase()]) {
+        var jsonWithId = {};
+        jsonWithId[elementName.toLowerCase()] = JSON.parse(JSON.stringify(this.props.loadedJson))[this.props.categoryName.toLowerCase()][elementName.toLowerCase()];
+        jsonWithId["id"] = this.props.loadedJson["id"];
+        return jsonWithId;
+      } else {
+        return {};
+      }
     } else {
-      return [];
+      return {};
     }
   }
 
@@ -542,17 +952,20 @@ class Category extends React.Component {
   }
 
   nothingSelected() { //returns true immediately on page load
-    for (let categoryName in this.json) {
-      for (let elementName in this.json[categoryName]) {
-        for (let subelementName in this.json[categoryName][elementName]) {
-          if (this.json[categoryName][elementName][subelementName]!='none') {
-            return false;
+    if (this.loadedJson=={}) {
+      for (let categoryName in this.json) {
+        for (let elementName in this.json[categoryName]) {
+          for (let subelementName in this.json[categoryName][elementName]) {
+            if (this.json[categoryName][elementName][subelementName]!='none') {
+              return false;
+            }
           }
         }
       }
+      return true;
+    } else {
+      return false;
     }
-
-    return true;
   }
 
   handleCategoryDetailsOpen(event) {
@@ -611,12 +1024,12 @@ class Category extends React.Component {
     var bulletListElements = [];
     for (let singleBulletListIndex in this.props.elementMap['singleBulletLists']) {
       let name = this.props.elementMap['singleBulletLists'][singleBulletListIndex];
-      bulletListElements.push(<SingleBulletList name={name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
+      bulletListElements.push(<SingleBulletList name={name} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(name)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} />);
     }
 
     for (let bulletListName in this.props.elementMap['bulletLists']) {
       let properties = this.props.elementMap['bulletLists'][bulletListName];
-      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={properties['maxBullets']} singleBulletList={false} />);
+      bulletListElements.push(<BulletList name={bulletListName} retrieve={this.retrieve} loadedJson={this.getLoadedJsonForChild(bulletListName)} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={properties['maxBullets']} singleBulletList={false} />);
     }
 
     var wrappedBulletListElements = Category.fillGrid(bulletListElements);
@@ -666,10 +1079,19 @@ class MulticolorCheckboxSet extends React.Component {
   static get numColsLarge()  {return 6;}
 
   getLoadedJsonForChild(checkboxName) {
-    if (checkboxName.toLowerCase() in this.props.loadedJson) {
-      return this.props.loadedJson[checkboxName.toLowerCase()];
+    //console.log(this.props.loadedJson);
+    if (this.props.name.toLowerCase() in this.props.loadedJson) {
+      if (checkboxName.toLowerCase() in this.props.loadedJson[this.props.name.toLowerCase()]) {
+        var jsonWithId = {};
+        jsonWithId["id"] = this.props.loadedJson["id"];
+        jsonWithId[checkboxName.toLowerCase()] = this.props.loadedJson[this.props.name.toLowerCase()][checkboxName.toLowerCase()];
+        //console.log(jsonWithId);
+        return jsonWithId;
+      } else {
+        return {};
+      }
     } else {
-      return '';
+      return {};
     }
   }
 
@@ -681,6 +1103,7 @@ class MulticolorCheckboxSet extends React.Component {
   }
 
   nothingSelected() { //returns true immediately on page load
+    //console.log(this.json);
     for (let setName in this.json) {
       for (let checkboxName in this.json[setName]) {
         if (this.json[setName][checkboxName]!='none') {
@@ -762,6 +1185,8 @@ class MulticolorCheckbox extends React.Component {
       childColors[i] = MulticolorCheckbox.colorNames(i);
     }
 
+    this.loadedJsonKey = '';
+
     this.state = {
       footerInitial: footerInitial,
       footer: footer,
@@ -812,6 +1237,26 @@ class MulticolorCheckbox extends React.Component {
     }
   }
 
+  componentWillReceiveProps(nextProps) {
+
+    //if fresh loadedJson is on its way, clear the old contents and replace with the new
+    if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
+      var newColors = [];
+      for (var i=0; i<this.state.childColors.length; i++) {
+        newColors[i] = MulticolorCheckbox.colorNames(i);
+      }
+
+      if (nextProps.loadedJson[nextProps.label.toLowerCase()]!='none') {
+        newColors[nextProps.loadedJson[nextProps.label.toLowerCase()]]='black';
+      }
+
+      //console.log(nextProps.label.toLowerCase());
+      //console.log(newColors);
+
+      this.setState({childColors: newColors});
+    }
+  }
+
   render() {
     this.props.retrieve(this.toJson());
 
@@ -827,7 +1272,7 @@ class MulticolorCheckbox extends React.Component {
 
     var choices = [];
     var percentWidth = 100 / this.state.descriptors.length;
-    for (var i=0; i<this.state.descriptors.length; i++) {
+    for (let i=0; i<this.state.descriptors.length; i++) {
       var side;
       var text;
       if (i===0) {
@@ -841,7 +1286,18 @@ class MulticolorCheckbox extends React.Component {
         text = '';
       }
 
-      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={this.state.childColors[i]} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} hoverText={this.state.descriptors[i]}  loadedJson={this.props.loadedJson[i]} interactionFrozen={this.props.interactionFrozen} />);
+      var color = this.state.childColors[i];
+      //console.log(this.props.loadedJson['id']);
+      //console.log(this.props.loadedJson[this.props.label.toLowerCase()]);
+      //console.log(this.loadedJsonKey);
+      if (this.props.loadedJson['id']!=this.loadedJsonKey) {
+        if (this.props.loadedJson[this.props.label.toLowerCase()]==i) {
+          color = 'black';
+          this.loadedJsonKey=this.props.loadedJson['id'];
+        }
+      }
+
+      choices.push(<CheckboxChoice key={MulticolorCheckbox.colorNames(i)} targetName={this.props.targetName} categoryName={this.props.categoryName} name={this.props.name} label={this.props.label} side={side} colorName={color} text={text} value={i} onClick={this.makeSelection} percentWidth={percentWidth} textHidden={true} hoverText={this.state.descriptors[i]}  interactionFrozen={this.props.interactionFrozen} />);
     }
 
     //TODO: the extra line breaks here are a hideous kludge
@@ -897,6 +1353,14 @@ class ColorSelectBar extends React.Component {
     }
 
     return 'none';
+  }
+
+  static colorFromScore(score) {
+    if (score=="none") {
+      return "white";
+    } else {
+      return ColorSelectBar.colors[score];
+    }
   }
 
   constructor(props) {
@@ -1195,7 +1659,29 @@ class SingleColorYou2DCheckboxSet extends React.Component {
     return rowContents;
   }
 
+  componentWillReceiveProps(nextProps) {
+
+    //if fresh loadedJson is on its way, clear the old contents and replace with the new
+    if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
+      var newColors = [];
+      for (let j=0;j<this.props.cellDimensions;j++) {
+        newColors[j] = [];
+        for (let i=0;i<this.props.cellDimensions;i++) {
+          newColors[j][i] = 'white';
+        }
+      }
+
+      for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+        let trueIndices = index.split(",");
+        newColors[trueIndices[0]][trueIndices[1]] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
+      }
+
+      this.setState({optionColors: newColors});
+    }
+  }
+
   render() {
+    //console.log(this.props.loadedJson);
     this.props.retrieve(this.toJson());
 
     var hidden = false;
@@ -1350,6 +1836,35 @@ class SingleColorYouCheckboxSet extends React.Component {
       newOptionColors[i] = 'white';
     }
     this.setState({optionColors: newOptionColors});
+  }
+
+  componentWillReceiveProps(nextProps) {
+    //if fresh loadedJson is on its way, clear the old contents and replace with the new
+    if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
+      var newColors = [];
+      for (let i=0;i<this.props.possibleOptions.length;i++) {
+        newColors[i] = 'white';
+      }
+
+      if (nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+        if (nextProps.loadedJson[nextProps.name.toLowerCase()][0]!=undefined) {
+          for (let i=0; i<nextProps.possibleOptions.length; i++) {
+            newColors[i] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][i]);
+          }
+        } else {
+          for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+            let capitalizedIndex = Chart.capitalize(index);
+            if (index=="mtf" || index=="ftm") { //workaround for MTF and FTM
+              capitalizedIndex = index.toUpperCase();
+            }
+            let numericalIndex = nextProps.possibleOptions.indexOf(capitalizedIndex);
+            newColors[numericalIndex] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
+          }
+        }
+      }
+
+      this.setState({optionColors: newColors});
+    }
   }
 
   render() {
@@ -1563,6 +2078,7 @@ class BulletList extends React.Component {
     this.newBullet   = this.newBullet.bind(this);
 
     //two sets of component keys -- used for forcing re-mounts
+    //TODO: phase this out -- remounts no longer necessary
     this.keysA = [];
     this.keysB = [];
     for (let i=0;i<this.props.maxBullets;i++) {
@@ -1582,6 +2098,8 @@ class BulletList extends React.Component {
     var bulletListJson = {};
     bulletListJson[this.props.name.toLowerCase()] = [''];
     this.props.retrieve(bulletListJson);
+
+    this.contentsLoadKey = '';
 
     this.state = {
       bulletContents: bulletContents
@@ -1635,7 +2153,36 @@ class BulletList extends React.Component {
   }
 
   isEmpty() {
-    return this.state.bulletContents==[];
+    if (this.state.bulletContents.length==0) {
+      return true;
+    } else if (this.state.bulletContents.length==1) {
+      return this.state.bulletContents[0]=="";
+    }
+  }
+
+  componentWillReceiveProps(nextProps) {
+    //if fresh loadedJson is on its way, clear the old contents and replace with the new
+    if (nextProps.loadedJson['id']!=this.props.loadedJson['id']) {
+      var bulletContents = [];
+
+      if (typeof nextProps.loadedJson[nextProps.name.toLowerCase()] === "string" || nextProps.loadedJson[nextProps.name.toLowerCase()] instanceof String) {
+        bulletContents[0] = nextProps.loadedJson[nextProps.name.toLowerCase()];
+      } else if(nextProps.singleBulletList) {
+        bulletContents[0] = '';
+      } else {
+        for (let index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
+          bulletContents[index] = nextProps.loadedJson[nextProps.name.toLowerCase()][index];
+        }
+      }
+
+      var bulletListJson = {};
+      bulletListJson[this.props.name.toLowerCase()] = bulletContents;
+      this.props.retrieve(bulletListJson);
+
+      this.contentsLoadKey = nextProps.loadedJson['id'];
+
+      this.setState({bulletContents: bulletContents});
+    }
   }
 
   render() {
@@ -1659,7 +2206,7 @@ class BulletList extends React.Component {
         isEmpty = true;
       }
 
-      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
+      bulletSetAndNewBulletButton.push(<Bullet key={this.keySet[i]} preloadedContents={this.state.bulletContents[i]} contentsLoadKey={this.contentsLoadKey} retrieve={this.retrieve} closeBullet={this.closeBullet} index={i} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} isEmpty={isEmpty} />);
     }
 
     //add a little space between the bullet points and the new bullet button
@@ -1706,13 +2253,13 @@ class SingleBulletList extends React.Component {
 
   retrieve(childJson) {
     var singleBulletListJson = {};
-    singleBulletListJson[this.props.name.toLowerCase()] = childJson[this.props.name.toLowerCase()][0]
-    this.props.retrieve(singleBulletListJson)
+    singleBulletListJson[this.props.name.toLowerCase()] = childJson[this.props.name.toLowerCase()][0];
+    this.props.retrieve(singleBulletListJson);
   }
 
   render() {
     return (
-      <BulletList name={this.props.name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} />
+      <BulletList name={this.props.name} retrieve={this.retrieve} interactionFrozen={this.props.interactionFrozen} emptyElementsHidden={this.props.emptyElementsHidden} maxBullets={1} singleBulletList={true} loadedJson={this.props.loadedJson} />
     );
   }
 }
@@ -1727,7 +2274,7 @@ class Bullet extends React.Component {
 
     var contents = [];
     contents.push(<span>•&nbsp;</span>);
-    contents.push(<BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} interactionFrozen={this.props.interactionFrozen} singleBulletList={this.props.singleBulletList} />);
+    contents.push(<BulletEntryBox retrieve={this.props.retrieve} index={this.props.index} preloadedContents={this.props.preloadedContents} contentsLoadKey={this.props.contentsLoadKey} interactionFrozen={this.props.interactionFrozen} />);
 
     if (!this.props.singleBulletList) {
       contents.push(<CloseBulletButton closeBullet={this.props.closeBullet} index={this.props.index} interactionFrozen={this.props.interactionFrozen} />);
@@ -1742,12 +2289,32 @@ class Bullet extends React.Component {
 }
 
 class BulletEntryBox extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.changeValue = this.changeValue.bind(this);
+
+    this.state = {
+      value: this.props.preloadedContents
+    };
+  }
+
   static get maxLength() { return 20; }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.contentsLoadKey!=nextProps.contentsLoadKey) {
+      this.setState({value: nextProps.preloadedContents});
+    }
+  }
+
+  changeValue(event) {
+    this.setState({value: event.target.value});
+  }
 
   render() {
     return (
       <div className="bulletEntry">
-        <input type="text" defaultValue={this.props.preloadedContents} disabled={this.props.interactionFrozen} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} maxLength={BulletEntryBox.maxLength} />
+        <input type="text" value={this.state.value} disabled={this.props.interactionFrozen} onChange={this.changeValue} onBlur={(event) => {this.props.retrieve(this.props.index, event)}} maxLength={BulletEntryBox.maxLength} />
       </div>
     );
   }
