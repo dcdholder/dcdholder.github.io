@@ -365,6 +365,7 @@ class Chart extends React.Component {
       if (httpRequest.readyState === XMLHttpRequest.DONE && httpRequest.status === 201) {
         localStorage.setItem("sessionId", httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
         successHandler();
+        that.setState({loggedIn: true});
       } else if (httpRequest.status>=400) {
         failureHandler(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
       }
@@ -464,7 +465,7 @@ class Chart extends React.Component {
       }
     };
     httpRequest.onerror = function() {
-      that.showFailedRequestWarning(httpRequest.responseText.replace(/(\n)/gm,"").replace(/(\")/gm,""));
+      that.showFailedRequestWarning('Unidentified failure.');
     };
     httpRequest.send(JSON.stringify({"sessionId": localStorage.getItem("sessionId"), "userData": this.json}));
   }
