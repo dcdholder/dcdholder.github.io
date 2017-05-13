@@ -2405,7 +2405,7 @@ var SingleColorYou2DCheckboxSet = function (_React$Component16) {
 
         for (var index in nextProps.loadedJson[nextProps.name.toLowerCase()]) {
           var trueIndices = index.split(",");
-          newColors[trueIndices[0]][trueIndices[1]] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
+          newColors[nextProps.cellDimensions - 1 - trueIndices[1]][trueIndices[0]] = ColorSelectBar.colorFromScore(nextProps.loadedJson[nextProps.name.toLowerCase()][index]);
         }
 
         this.setState({ optionColors: newColors });
