@@ -3212,7 +3212,7 @@ var BulletEntryBox = function (_React$Component24) {
   }], [{
     key: "maxLength",
     get: function get() {
-      return 20;
+      return 30;
     }
   }]);
 

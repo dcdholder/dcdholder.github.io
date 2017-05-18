@@ -2301,7 +2301,7 @@ class BulletEntryBox extends React.Component {
     };
   }
 
-  static get maxLength() { return 20; }
+  static get maxLength() { return 30; }
 
   componentWillReceiveProps(nextProps) {
     if (this.props.contentsLoadKey!=nextProps.contentsLoadKey) {
