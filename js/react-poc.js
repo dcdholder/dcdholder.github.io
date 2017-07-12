@@ -612,6 +612,8 @@ class Chart extends React.Component {
       } else {
         footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Save Page</button>);
       }
+    } else {
+      footerButtons.push(<button type="button" name="registerModalButton" onClick={() => {this.openRegisterPrompt()}}>Save Page</button>);
     }
 
     if (this.developmentMode) {
@@ -1371,8 +1373,10 @@ class ColorSelectBar extends React.Component {
     this.frameColorSelection = this.frameColorSelection.bind(this);
 
     this.state = {
-      selectedColor: 'none'
+      selectedColor: 'green'
     };
+
+    this.props.onClick(this.state.selectedColor);
   }
 
   frameColorSelection(color) {

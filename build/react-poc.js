@@ -661,6 +661,14 @@ var Chart = function (_React$Component) {
             "Save Page"
           ));
         }
+      } else {
+        footerButtons.push(React.createElement(
+          "button",
+          { type: "button", name: "registerModalButton", onClick: function onClick() {
+              _this2.openRegisterPrompt();
+            } },
+          "Save Page"
+        ));
       }
 
       if (this.developmentMode) {
@@ -1930,8 +1938,10 @@ var ColorSelectBar = function (_React$Component10) {
     _this16.frameColorSelection = _this16.frameColorSelection.bind(_this16);
 
     _this16.state = {
-      selectedColor: 'none'
+      selectedColor: 'green'
     };
+
+    _this16.props.onClick(_this16.state.selectedColor);
     return _this16;
   }
 
